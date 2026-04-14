@@ -22,12 +22,24 @@ export default function Navbar() {
     return map[user.role] || '/';
   };
 
-  const navLinks = [
-    { to: '/', label: 'Browse food' },
-    { to: '/donor/add', label: 'Donate surplus' },
-    { to: '/volunteer', label: 'Volunteer' },
-    { to: '/impact', label: 'Impact' },
-  ];
+  // Build nav links based on auth status and role
+  const getNavLinks = () => {
+    if (!isAuthenticated) {
+      return [
+        { to: '/', label: 'Browse food' },
+        { to: '/signup?role=DONOR', label: 'Donate surplus' },
+        { to: '/signup?role=VOLUNTEER', label: 'Volunteer' },
+        { to: '/impact', label: 'Impact' },
+      ];
+    }
+    const base = [{ to: '/', label: 'Browse food' }, { to: '/impact', label: 'Impact' }];
+    if (user?.role === 'DONOR')     return [...base, { to: '/donor', label: 'My Donations' }, { to: '/donor/add', label: '+ Post Food' }];
+    if (user?.role === 'RECEIVER')  return [...base, { to: '/receiver', label: 'My Claims' }];
+    if (user?.role === 'VOLUNTEER') return [...base, { to: '/volunteer', label: 'Deliveries' }];
+    return base;
+  };
+  const navLinks = getNavLinks();
+
 
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">

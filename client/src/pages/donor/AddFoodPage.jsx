@@ -22,10 +22,23 @@ export default function AddFoodPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    title: '', description: '', quantity: '', foodType: 'VEG',
+    title: '', description: '', quantity: '', foodTypes: ['VEG'],
     expiryTime: '', location: user?.location || 'Koramangala, Bangalore',
     pickupArrangement: 'FLEXIBLE',
   });
+
+  const toggleFoodType = (value) => {
+    setForm(prev => {
+      const already = prev.foodTypes.includes(value);
+      if (already && prev.foodTypes.length === 1) return prev; // keep at least one
+      return {
+        ...prev,
+        foodTypes: already
+          ? prev.foodTypes.filter(t => t !== value)
+          : [...prev.foodTypes, value],
+      };
+    });
+  };
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +62,12 @@ export default function AddFoodPage() {
     setLoading(true);
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+      // Spread form but send foodType as the PRIMARY type (first selected)
+      Object.entries(form).forEach(([k, v]) => {
+        if (k !== 'foodTypes') formData.append(k, v);
+      });
+      formData.append('foodType', form.foodTypes[0]); // primary type for DB
+      formData.append('foodTypesAll', form.foodTypes.join(','));
       if (image) formData.append('image', image);
       await api.post('/food', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Food listing posted successfully!');
@@ -103,21 +121,30 @@ export default function AddFoodPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Food type * (select that apply)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Food type * <span className="text-xs text-gray-400">(select all that apply)</span>
+            </label>
             <div className="flex gap-2">
-              {FOOD_TYPES.map(ft => (
-                <button
-                  key={ft.value}
-                  type="button"
-                  onClick={() => setForm(prev => ({ ...prev, foodType: ft.value }))}
-                  className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border-2 transition-all ${
-                    form.foodType === ft.value ? ft.color + ' border-2' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
-                  {ft.label}
-                </button>
-              ))}
+              {FOOD_TYPES.map(ft => {
+                const selected = form.foodTypes.includes(ft.value);
+                return (
+                  <button
+                    key={ft.value}
+                    type="button"
+                    onClick={() => toggleFoodType(ft.value)}
+                    className={`flex-1 text-sm font-semibold py-2.5 rounded-xl border-2 transition-all relative ${
+                      selected ? ft.color : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {ft.label}
+                    {selected && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-green-600 rounded-full text-[9px] text-white flex items-center justify-center font-bold">✓</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-xs text-gray-400 mt-1.5">Selected: {form.foodTypes.join(' + ')}</p>
           </div>
 
           <div>

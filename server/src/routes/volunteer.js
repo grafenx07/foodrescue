@@ -5,6 +5,9 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// In-memory store for volunteer live locations { taskId -> { lat, lng, updatedAt } }
+const liveLocations = {};
+
 // GET /api/tasks - list open tasks (claims with VOLUNTEER pickup that are CLAIMED and have no volunteer yet)
 router.get('/', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
   try {
@@ -118,6 +121,35 @@ router.post('/update-status', authenticate, requireRole('VOLUNTEER'), async (req
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// POST /api/tasks/location  — volunteer broadcasts their current location
+router.post('/location', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
+  try {
+    const { taskId, lat, lng } = req.body;
+    if (!taskId || lat == null || lng == null) {
+      return res.status(400).json({ error: 'taskId, lat and lng are required' });
+    }
+    const task = await prisma.volunteerTask.findUnique({ where: { id: taskId } });
+    if (!task || task.volunteerId !== req.user.id) {
+      return res.status(403).json({ error: 'Not your task' });
+    }
+    liveLocations[taskId] = { lat: parseFloat(lat), lng: parseFloat(lng), updatedAt: new Date() };
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/tasks/location/:taskId  — receiver polls volunteer location
+router.get('/location/:taskId', authenticate, async (req, res) => {
+  const loc = liveLocations[req.params.taskId];
+  if (!loc) return res.json({ lat: null, lng: null });
+  // Expire after 60 s of no update
+  const age = (Date.now() - new Date(loc.updatedAt).getTime()) / 1000;
+  if (age > 60) return res.json({ lat: null, lng: null });
+  res.json(loc);
 });
 
 module.exports = router;

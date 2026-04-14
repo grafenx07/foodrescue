@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Clock, Users, MapPin, ArrowLeft, User, Phone } from 'lucide-react';
+import { Marker, Popup } from 'react-leaflet';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
 import StatusBadge from '../components/StatusBadge';
+import MapView, { greenIcon } from '../components/MapView';
 import toast from 'react-hot-toast';
 
 const PLACEHOLDER_IMAGES = [
@@ -20,12 +22,22 @@ export default function FoodDetailPage() {
   const [loading, setLoading] = useState(true);
   const [pickupType, setPickupType] = useState('SELF');
   const [claiming, setClaiming] = useState(false);
+  const [coords, setCoords] = useState(null); // [lat, lng] for map
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get(`/food/${id}`)
-      .then(r => setListing(r.data))
+      .then(r => {
+        setListing(r.data);
+        // Geocode the location for the map
+        if (r.data.location) {
+          fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(r.data.location)}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } })
+            .then(res => res.json())
+            .then(data => { if (data.length) setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]); })
+            .catch(() => {});
+        }
+      })
       .catch(() => toast.error('Food listing not found'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -70,17 +82,19 @@ export default function FoodDetailPage() {
             <img src={imgSrc} alt={listing.title} className="w-full h-full object-cover" onError={e => { e.target.src = PLACEHOLDER_IMAGES[0]; }} />
           </div>
 
-          {/* Google Maps Iframe */}
-          <div className="bg-gray-100 rounded-2xl h-40 overflow-hidden relative shadow-sm border border-gray-100">
-            <iframe
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.location)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-            />
+          {/* Leaflet Map */}
+          <div className="rounded-2xl h-40 overflow-hidden shadow-sm border border-gray-100">
+            {coords ? (
+              <MapView center={coords} zoom={15} height="160px">
+                <Marker position={coords} icon={greenIcon}>
+                  <Popup><span className="text-xs font-semibold">{listing.location}</span></Popup>
+                </Marker>
+              </MapView>
+            ) : (
+              <div className="bg-gray-100 h-full flex items-center justify-center text-gray-400 text-sm">
+                <MapPin size={20} className="mr-2 text-green-500" /> {listing.location}
+              </div>
+            )}
           </div>
         </div>
 

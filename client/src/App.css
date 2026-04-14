@@ -1,0 +1,2 @@
+/* App.css - reset, this app uses index.css + Tailwind */ 
+* { box-sizing: border-box; margin: 0; padding: 0; }

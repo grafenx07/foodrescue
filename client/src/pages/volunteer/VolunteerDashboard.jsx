@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Package, CheckCircle, Star, Users, RefreshCw, MapPin, Award } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Package, CheckCircle, Star, Users, RefreshCw, MapPin, Award, Navigation } from 'lucide-react';
 import api from '../../lib/api';
 import useAuthStore from '../../store/authStore';
 import StatusBadge from '../../components/StatusBadge';
@@ -19,6 +19,8 @@ export default function VolunteerDashboard() {
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(null);
   const [updating, setUpdating] = useState(null);
+  const [sharingTaskId, setSharingTaskId] = useState(null); // currently broadcasting task
+  const watchRef = useRef(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -56,6 +58,36 @@ export default function VolunteerDashboard() {
       setUpdating(null);
     }
   };
+
+  const toggleLiveTracking = (taskId) => {
+    if (sharingTaskId === taskId) {
+      // Stop sharing
+      if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+      setSharingTaskId(null);
+      toast('Location sharing stopped.', { icon: '📍' });
+      return;
+    }
+    if (!navigator.geolocation) { toast.error('Geolocation not supported by your browser'); return; }
+    setSharingTaskId(taskId);
+    toast.success('Sharing live location 📡');
+    watchRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        api.post('/tasks/location', {
+          taskId,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }).catch(() => {});
+      },
+      () => toast.error('Location access denied'),
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+  };
+
+  // Clean up on unmount
+  useEffect(() => () => {
+    if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
+  }, []);
 
   const { openClaims, myTasks, completedTasks } = data;
 
@@ -117,8 +149,15 @@ export default function VolunteerDashboard() {
                         {updating === task.id ? 'Completing...' : '✅ Mark Delivered'}
                       </button>
                     )}
-                    <button className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 flex items-center gap-1.5 hover:bg-gray-50">
-                      <MapPin size={14} /> Map
+                    <button
+                      onClick={() => toggleLiveTracking(task.id)}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors ${
+                        sharingTaskId === task.id
+                          ? 'bg-orange-100 text-orange-700 border border-orange-300 animate-pulse'
+                          : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Navigation size={14} /> {sharingTaskId === task.id ? 'Sharing 📡' : 'Share Location'}
                     </button>
                   </div>
                 </div>

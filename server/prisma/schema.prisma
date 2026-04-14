@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DONOR
+  RECEIVER
+  VOLUNTEER
+}
+
+enum FoodType {
+  VEG
+  NON_VEG
+  PACKAGED
+}
+
+enum FoodStatus {
+  AVAILABLE
+  CLAIMED
+  ASSIGNED
+  PICKED_UP
+  DELIVERED
+  EXPIRED
+  CANCELLED
+}
+
+enum PickupType {
+  SELF
+  VOLUNTEER
+}
+
+enum TaskStatus {
+  ASSIGNED
+  PICKED_UP
+  DELIVERED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  phone     String?
+  location  String?
+  createdAt DateTime @default(now())
+
+  foodListings    FoodListing[]
+  claims          Claim[]
+  volunteerTasks  VolunteerTask[]
+}
+
+model FoodListing {
+  id          String     @id @default(uuid())
+  donorId     String
+  donor       User       @relation(fields: [donorId], references: [id])
+  title       String
+  description String?
+  quantity    Int
+  foodType    FoodType   @default(VEG)
+  expiryTime  DateTime
+  location    String
+  status      FoodStatus @default(AVAILABLE)
+  imageUrl    String?
+  pickupArrangement String? @default("FLEXIBLE")
+  createdAt   DateTime   @default(now())
+
+  claims      Claim[]
+}
+
+model Claim {
+  id         String     @id @default(uuid())
+  foodId     String
+  food       FoodListing @relation(fields: [foodId], references: [id])
+  receiverId String
+  receiver   User        @relation(fields: [receiverId], references: [id])
+  pickupType PickupType  @default(SELF)
+  status     FoodStatus  @default(CLAIMED)
+  createdAt  DateTime    @default(now())
+
+  volunteerTask VolunteerTask?
+}
+
+model VolunteerTask {
+  id          String     @id @default(uuid())
+  claimId     String     @unique
+  claim       Claim      @relation(fields: [claimId], references: [id])
+  volunteerId String
+  volunteer   User       @relation(fields: [volunteerId], references: [id])
+  status      TaskStatus @default(ASSIGNED)
+  createdAt   DateTime   @default(now())
+}

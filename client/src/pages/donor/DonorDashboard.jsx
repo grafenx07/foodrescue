@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Package, CheckCircle, Leaf, TrendingUp } from 'lucide-react';
+import { Plus, Package, CheckCircle, Leaf, TrendingUp, Truck } from 'lucide-react';
 import api from '../../lib/api';
 import StatusBadge from '../../components/StatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function DonorDashboard() {
   const [data, setData] = useState({ listings: [], stats: { active: 0, completed: 0, totalServings: 0 } });
+  const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/donor/listings')
-      .then(r => setData(r.data))
+    Promise.all([
+      api.get('/donor/listings'),
+      api.get('/donor/deliveries'),
+    ])
+      .then(([listingsRes, deliveriesRes]) => {
+        setData(listingsRes.data);
+        setDeliveries(deliveriesRes.data);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -33,6 +40,29 @@ export default function DonorDashboard() {
         </Link>
       </div>
 
+      {/* Pending deliveries alert banner */}
+      {deliveries.length > 0 && (
+        <Link
+          to="/donor/listings"
+          className="flex items-center justify-between gap-4 bg-purple-600 text-white rounded-xl px-5 py-4 mb-6 hover:bg-purple-700 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Truck size={18} />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">
+                {deliveries.length} pending {deliveries.length === 1 ? 'delivery' : 'deliveries'} waiting for you
+              </p>
+              <p className="text-purple-200 text-xs mt-0.5">
+                You committed to deliver these — tap to update status
+              </p>
+            </div>
+          </div>
+          <span className="text-purple-200 text-sm font-semibold whitespace-nowrap">View →</span>
+        </Link>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
@@ -53,7 +83,7 @@ export default function DonorDashboard() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Link to="/donor/add" className="bg-green-600 text-white rounded-xl p-5 hover:bg-green-700 transition-colors">
           <Plus size={24} className="mb-2" />
           <h3 className="font-semibold text-lg">Post New Food</h3>
@@ -63,6 +93,16 @@ export default function DonorDashboard() {
           <TrendingUp size={24} className="mb-2 text-blue-600" />
           <h3 className="font-semibold text-lg text-gray-900">Manage Listings</h3>
           <p className="text-gray-500 text-sm mt-1">Edit or cancel your donations</p>
+        </Link>
+        <Link to="/donor/listings" className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-md transition-all relative">
+          <Truck size={24} className="mb-2 text-purple-600" />
+          <h3 className="font-semibold text-lg text-gray-900">My Deliveries</h3>
+          <p className="text-gray-500 text-sm mt-1">Track food you're delivering</p>
+          {deliveries.length > 0 && (
+            <span className="absolute top-3 right-3 w-5 h-5 bg-purple-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {deliveries.length}
+            </span>
+          )}
         </Link>
       </div>
 
@@ -89,6 +129,9 @@ export default function DonorDashboard() {
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-semibold text-gray-900 text-sm">{l.title}</h3>
                   <StatusBadge status={l.status} size="sm" />
+                  {l.pickupArrangement === 'DONOR_DELIVERY' && (
+                    <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">🚗 I deliver</span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500">{l.quantity} portions · {l.location} · Posted {formatDistanceToNow(new Date(l.createdAt))} ago</p>
                 {l.claims.length > 0 && (

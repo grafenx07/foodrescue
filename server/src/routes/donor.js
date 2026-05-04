@@ -38,4 +38,61 @@ router.get('/listings', authenticate, requireRole('DONOR'), async (req, res) => 
   }
 });
 
+// GET /api/donor/deliveries - donor-delivery claims that the donor must handle
+router.get('/deliveries', authenticate, requireRole('DONOR'), async (req, res) => {
+  try {
+    const claims = await prisma.claim.findMany({
+      where: {
+        food: {
+          donorId: req.user.id,
+          pickupArrangement: 'DONOR_DELIVERY',
+        },
+        status: { in: ['ASSIGNED', 'PICKED_UP'] },
+      },
+      include: {
+        food: { select: { id: true, title: true, quantity: true, location: true } },
+        receiver: { select: { id: true, name: true, phone: true, location: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(claims);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/donor/deliver/:claimId - donor updates delivery status
+router.patch('/deliver/:claimId', authenticate, requireRole('DONOR'), async (req, res) => {
+  try {
+    const { claimId } = req.params;
+    const { status } = req.body; // 'PICKED_UP' or 'DELIVERED'
+
+    if (!['PICKED_UP', 'DELIVERED'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be PICKED_UP or DELIVERED' });
+    }
+
+    const claim = await prisma.claim.findUnique({
+      where: { id: claimId },
+      include: { food: true },
+    });
+
+    if (!claim) return res.status(404).json({ error: 'Claim not found' });
+    if (claim.food.donorId !== req.user.id) return res.status(403).json({ error: 'Not your listing' });
+    if (claim.food.pickupArrangement !== 'DONOR_DELIVERY') {
+      return res.status(400).json({ error: 'This claim is not a donor-delivery claim' });
+    }
+
+    const [updatedClaim] = await prisma.$transaction([
+      prisma.claim.update({ where: { id: claimId }, data: { status } }),
+      prisma.foodListing.update({ where: { id: claim.foodId }, data: { status } }),
+    ]);
+
+    res.json(updatedClaim);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

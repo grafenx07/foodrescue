@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Circle, ArrowLeft, Navigation } from 'lucide-react';
+import { CheckCircle, Circle, ArrowLeft, Navigation, Truck } from 'lucide-react';
 import { Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../../lib/api';
@@ -8,13 +8,23 @@ import { formatDistanceToNow } from 'date-fns';
 import MapView, { greenIcon, blueIcon, orangeIcon } from '../../components/MapView';
 import toast from 'react-hot-toast';
 
-const TIMELINE_STEPS = [
+// Standard volunteer-delivery timeline
+const VOLUNTEER_STEPS = [
   { status: 'CLAIMED',   label: 'Claimed',           desc: 'You claimed this food' },
   { status: 'ASSIGNED',  label: 'Volunteer Assigned', desc: 'A volunteer accepted the task' },
   { status: 'PICKED_UP', label: 'Picked Up',          desc: 'Food collected from donor' },
   { status: 'DELIVERED', label: 'Delivered',           desc: 'Food delivered to you' },
 ];
-const STATUS_ORDER = { CLAIMED: 0, ASSIGNED: 1, PICKED_UP: 2, DELIVERED: 3 };
+
+// Donor-delivery timeline (no volunteer step)
+const DONOR_STEPS = [
+  { status: 'ASSIGNED',  label: 'Confirmed',    desc: 'Donor confirmed they will deliver' },
+  { status: 'PICKED_UP', label: 'On the way',   desc: 'Donor has picked up the food' },
+  { status: 'DELIVERED', label: 'Delivered',     desc: 'Food delivered to you 🎉' },
+];
+
+const VOLUNTEER_ORDER = { CLAIMED: 0, ASSIGNED: 1, PICKED_UP: 2, DELIVERED: 3 };
+const DONOR_ORDER     = { ASSIGNED: 0, PICKED_UP: 1, DELIVERED: 2 };
 
 // Geocode helper
 async function geocodeText(text) {
@@ -104,9 +114,12 @@ export default function TrackingPage() {
     <div className="max-w-2xl mx-auto px-4 py-16 text-center text-gray-500">Claim not found</div>
   );
 
-  const currentIdx = STATUS_ORDER[claim.status] ?? 0;
-  const mapCenter  = donorCoords || receiverCoords || [12.9352, 77.6245];
-  const routePoints = [donorCoords, volunteerPos, receiverCoords].filter(Boolean);
+  const isDonorDelivery = claim.food?.pickupArrangement === 'DONOR_DELIVERY';
+  const timelineSteps   = isDonorDelivery ? DONOR_STEPS : VOLUNTEER_STEPS;
+  const statusOrder     = isDonorDelivery ? DONOR_ORDER : VOLUNTEER_ORDER;
+  const currentIdx      = statusOrder[claim.status] ?? 0;
+  const mapCenter       = donorCoords || receiverCoords || [12.9352, 77.6245];
+  const routePoints     = [donorCoords, volunteerPos, receiverCoords].filter(Boolean);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -159,27 +172,41 @@ export default function TrackingPage() {
 
         {/* Timeline */}
         <div className="space-y-0">
-          {TIMELINE_STEPS.map((step, i) => {
+          {timelineSteps.map((step, i) => {
             const isCompleted = i <= currentIdx;
             const isCurrent   = i === currentIdx;
             return (
               <div key={step.status} className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                    isCompleted ? 'bg-green-600' : 'bg-gray-100'
+                    isCompleted
+                      ? isDonorDelivery ? 'bg-purple-600' : 'bg-green-600'
+                      : 'bg-gray-100'
                   }`}>
                     {isCompleted
                       ? <CheckCircle size={16} className="text-white" />
                       : <Circle size={16} className="text-gray-300" />}
                   </div>
-                  {i < TIMELINE_STEPS.length - 1 && (
-                    <div className={`w-0.5 h-12 ${isCompleted ? 'bg-green-600' : 'bg-gray-100'}`} />
+                  {i < timelineSteps.length - 1 && (
+                    <div className={`w-0.5 h-12 ${
+                      isCompleted
+                        ? isDonorDelivery ? 'bg-purple-600' : 'bg-green-600'
+                        : 'bg-gray-100'
+                    }`} />
                   )}
                 </div>
                 <div className="pb-12 pt-1">
-                  <p className={`text-sm font-semibold ${isCurrent ? 'text-green-600' : isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
+                  <p className={`text-sm font-semibold ${
+                    isCurrent
+                      ? isDonorDelivery ? 'text-purple-600' : 'text-green-600'
+                      : isCompleted ? 'text-gray-900' : 'text-gray-400'
+                  }`}>
                     {step.label}
-                    {isCurrent && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-2">Current</span>}
+                    {isCurrent && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${
+                        isDonorDelivery ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
+                      }`}>Current</span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
                 </div>
@@ -188,8 +215,22 @@ export default function TrackingPage() {
           })}
         </div>
 
-        {/* Volunteer info */}
-        {claim.volunteerTask && (
+        {/* Delivery info card */}
+        {isDonorDelivery ? (
+          <div className="mt-4 bg-purple-50 rounded-xl p-4">
+            <p className="text-sm font-semibold text-purple-900 mb-0.5 flex items-center gap-2">
+              <Truck size={14} /> {claim.food?.donor?.name} is delivering personally
+            </p>
+            <p className="text-xs text-purple-700">
+              {claim.status === 'PICKED_UP'
+                ? '🚗 Donor is on the way to you!'
+                : '📦 Donor will deliver as soon as possible'}
+            </p>
+            {claim.food?.donor?.phone && (
+              <p className="text-xs text-purple-600 mt-1">📞 {claim.food.donor.phone}</p>
+            )}
+          </div>
+        ) : claim.volunteerTask ? (
           <div className="mt-4 bg-orange-50 rounded-xl p-4">
             <p className="text-sm font-semibold text-orange-900 mb-0.5 flex items-center gap-2">
               <Navigation size={14} /> {claim.volunteerTask.volunteer?.name}
@@ -204,7 +245,7 @@ export default function TrackingPage() {
               <p className="text-xs text-gray-400 mt-2 italic">Waiting for volunteer to share live location…</p>
             )}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Food info */}
@@ -213,7 +254,11 @@ export default function TrackingPage() {
         <div className="text-sm text-gray-600 space-y-2">
           <p><strong>From:</strong> {claim.food?.donor?.name} — {claim.food?.donor?.location}</p>
           <p><strong>Quantity:</strong> {claim.food?.quantity} servings</p>
-          <p><strong>Pickup type:</strong> {claim.pickupType === 'SELF' ? '🚶 Self pickup' : '🚴 Volunteer delivery'}</p>
+          <p><strong>Pickup type:</strong> {
+            isDonorDelivery ? '🚗 Donor delivery'
+            : claim.pickupType === 'SELF' ? '🚶 Self pickup'
+            : '🚴 Volunteer delivery'
+          }</p>
           <p><strong>Claimed:</strong> {formatDistanceToNow(new Date(claim.createdAt))} ago</p>
         </div>
       </div>

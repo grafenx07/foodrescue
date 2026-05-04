@@ -21,22 +21,25 @@ router.post('/', authenticate, requireRole('RECEIVER'), async (req, res) => {
     });
     if (existingClaim) return res.status(409).json({ error: 'You already claimed this listing' });
 
+    // For donor-delivery listings, skip volunteer queue entirely
+    const isDonorDelivery = food.pickupArrangement === 'DONOR_DELIVERY';
+
     const [claim] = await prisma.$transaction([
       prisma.claim.create({
         data: {
           foodId,
           receiverId: req.user.id,
-          pickupType: pickupType || 'SELF',
-          status: 'CLAIMED',
+          pickupType: isDonorDelivery ? 'VOLUNTEER' : (pickupType || 'SELF'), // reuse VOLUNTEER slot; donor acts as deliverer
+          status: isDonorDelivery ? 'ASSIGNED' : 'CLAIMED',
         },
       }),
       prisma.foodListing.update({
         where: { id: foodId },
-        data: { status: 'CLAIMED' },
+        data: { status: isDonorDelivery ? 'ASSIGNED' : 'CLAIMED' },
       }),
     ]);
 
-    res.status(201).json(claim);
+    res.status(201).json({ ...claim, isDonorDelivery });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

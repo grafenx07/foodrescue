@@ -27,7 +27,7 @@ export default function SignupPage() {
       const { data } = await api.post('/auth/register', form);
       setAuth(data.user, data.token);
       toast.success(`Welcome to FoodRescue, ${data.user.name.split(' ')[0]}!`);
-      const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer' };
+      const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer', ADMIN: '/admin' };
       navigate(redirects[data.user.role] || '/');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Registration failed');

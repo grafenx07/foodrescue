@@ -1,15 +1,35 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+// SAFETY GUARD: Never seed in production
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ Seeding is disabled in production. Set NODE_ENV to development or staging.');
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding database (development only)...');
 
-  // Create demo users
+  // ── Admin account ──────────────────────────────────────────
+  const adminPassword = await bcrypt.hash('Admin@2025!', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@foodrescue.app' },
+    update: {},
+    create: {
+      name: 'FoodRescue Admin',
+      email: 'admin@foodrescue.app',
+      password: adminPassword,
+      role: 'ADMIN',
+    },
+  });
+
+
   const donorPassword = await bcrypt.hash('password123', 10);
   const receiverPassword = await bcrypt.hash('password123', 10);
   const volunteerPassword = await bcrypt.hash('password123', 10);
+
 
   const donor = await prisma.user.upsert({
     where: { email: 'sarah@restaurant.com' },
@@ -63,7 +83,7 @@ async function main() {
     },
   });
 
-  const receiver2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'contact@hopefoundation.org' },
     update: {},
     create: {
@@ -89,11 +109,11 @@ async function main() {
     },
   });
 
-  const volunteer2 = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'mike@volunteer.com' },
     update: {},
     create: {
-      name: 'Mike Volunteer',
+      name: 'Mike Thomas',
       email: 'mike@volunteer.com',
       password: volunteerPassword,
       role: 'VOLUNTEER',
@@ -102,9 +122,9 @@ async function main() {
     },
   });
 
-  // Create food listings
   const now = new Date();
 
+  // Food listings with real approximate Bangalore coordinates
   const food1 = await prisma.foodListing.upsert({
     where: { id: 'aaaaaaaa-0001-0001-0001-aaaaaaaaaaaa' },
     update: {},
@@ -116,7 +136,9 @@ async function main() {
       quantity: 15,
       foodType: 'VEG',
       expiryTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-      location: 'Gold Star Mess, Koramangala',
+      location: 'Gold Star Mess, Koramangala, Bangalore',
+      lat: 12.9352,
+      lng: 77.6245,
       status: 'AVAILABLE',
     },
   });
@@ -132,7 +154,9 @@ async function main() {
       quantity: 12,
       foodType: 'NON_VEG',
       expiryTime: new Date(now.getTime() + 3 * 60 * 60 * 1000),
-      location: 'Namma Kitchen, Indiranagar',
+      location: 'Namma Kitchen, Indiranagar, Bangalore',
+      lat: 12.9784,
+      lng: 77.6408,
       status: 'AVAILABLE',
     },
   });
@@ -148,7 +172,9 @@ async function main() {
       quantity: 30,
       foodType: 'PACKAGED',
       expiryTime: new Date(now.getTime() + 1 * 60 * 60 * 1000),
-      location: 'Sunder Hostel, Koramangala',
+      location: 'Koramangala 4th Block, Bangalore',
+      lat: 12.9312,
+      lng: 77.6187,
       status: 'AVAILABLE',
     },
   });
@@ -164,7 +190,9 @@ async function main() {
       quantity: 20,
       foodType: 'VEG',
       expiryTime: new Date(now.getTime() + 5 * 60 * 60 * 1000),
-      location: 'Green Table NGO, BTM Layout',
+      location: 'BTM Layout 2nd Stage, Bangalore',
+      lat: 12.9165,
+      lng: 77.6101,
       status: 'AVAILABLE',
     },
   });
@@ -175,12 +203,14 @@ async function main() {
     create: {
       id: 'aaaaaaaa-0005-0005-0005-aaaaaaaaaaaa',
       donorId: donor3.id,
-      title: 'Tandoori chicken (pivot)',
+      title: 'Tandoori chicken',
       description: 'Succulent tandoori chicken pieces, 8 portions.',
       quantity: 8,
       foodType: 'NON_VEG',
       expiryTime: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-      location: 'Rainbow Hotel, BTM 2nd Stage',
+      location: 'Rainbow Hotel, BTM 2nd Stage, Bangalore',
+      lat: 12.9142,
+      lng: 77.6138,
       status: 'AVAILABLE',
     },
   });
@@ -191,18 +221,19 @@ async function main() {
     create: {
       id: 'aaaaaaaa-0006-0006-0006-aaaaaaaaaaaa',
       donorId: donor2.id,
-      title: 'Pan bhaji + rolls',
+      title: 'Pav bhaji + rolls',
       description: 'Mumbai style pav bhaji with dinner rolls.',
       quantity: 10,
       foodType: 'VEG',
       expiryTime: new Date(now.getTime() + 4 * 60 * 60 * 1000),
-      location: 'Café Blue Star, Indiranagar',
+      location: 'Café Blue Star, Indiranagar, Bangalore',
+      lat: 12.9716,
+      lng: 77.6412,
       status: 'ASSIGNED',
       pickupArrangement: 'VOLUNTEER',
     },
   });
 
-  // Create a claim for the assigned listing
   const claim1 = await prisma.claim.upsert({
     where: { id: 'cccccccc-0001-0001-0001-cccccccccccc' },
     update: {},
@@ -215,7 +246,6 @@ async function main() {
     },
   });
 
-  // Create a volunteer task for it
   await prisma.volunteerTask.upsert({
     where: { claimId: 'cccccccc-0001-0001-0001-cccccccccccc' },
     update: {},
@@ -227,10 +257,11 @@ async function main() {
   });
 
   console.log('✅ Seed complete!');
-  console.log('\n📧 Demo accounts (password: password123):');
+  console.log('\n📧 Dev accounts (password: password123):');
   console.log('  Donor:     sarah@restaurant.com');
   console.log('  Receiver:  ananya@ngo.com');
   console.log('  Volunteer: harsh@volunteer.com');
+  console.log('\n⚠️  These are DEV ONLY accounts. Delete before going live.');
 }
 
 main()

@@ -6,12 +6,44 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // In-memory store for volunteer live locations { taskId -> { lat, lng, updatedAt } }
+// Note: This is single-node in-memory storage. For multi-server deployments, use Redis.
 const liveLocations = {};
 
-// GET /api/tasks - list open tasks (claims with VOLUNTEER pickup that are CLAIMED and have no volunteer yet)
+// GET /api/tasks/leaderboard — top volunteers by delivered task count (public)
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const topVolunteers = await prisma.volunteerTask.groupBy({
+      by: ['volunteerId'],
+      where: { status: 'DELIVERED' },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 10,
+    });
+
+    const volunteerIds = topVolunteers.map(v => v.volunteerId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: volunteerIds } },
+      select: { id: true, name: true },
+    });
+
+    const userMap = Object.fromEntries(users.map(u => [u.id, u.name]));
+    const leaderboard = topVolunteers.map((v, idx) => ({
+      rank: idx + 1,
+      volunteerId: v.volunteerId,
+      name: userMap[v.volunteerId] || 'Unknown',
+      deliveries: v._count.id,
+    }));
+
+    res.json(leaderboard);
+  } catch (err) {
+    console.error('[leaderboard]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/tasks - list open tasks + my tasks (VOLUNTEER only)
 router.get('/', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
   try {
-    // Find claims with VOLUNTEER pickup type that haven't been assigned yet
     const openClaims = await prisma.claim.findMany({
       where: {
         pickupType: 'VOLUNTEER',
@@ -25,7 +57,6 @@ router.get('/', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Find this volunteer's active tasks
     const myTasks = await prisma.volunteerTask.findMany({
       where: {
         volunteerId: req.user.id,
@@ -41,7 +72,6 @@ router.get('/', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
       },
     });
 
-    // Find completed tasks
     const completedTasks = await prisma.volunteerTask.findMany({
       where: { volunteerId: req.user.id, status: 'DELIVERED' },
       include: {
@@ -58,7 +88,7 @@ router.get('/', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
 
     res.json({ openClaims, myTasks, completedTasks });
   } catch (err) {
-    console.error(err);
+    console.error('[tasks GET /]', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -86,7 +116,7 @@ router.post('/accept', authenticate, requireRole('VOLUNTEER'), async (req, res) 
 
     res.status(201).json(task);
   } catch (err) {
-    console.error(err);
+    console.error('[tasks POST /accept]', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -116,14 +146,19 @@ router.post('/update-status', authenticate, requireRole('VOLUNTEER'), async (req
       }),
     ]);
 
+    // Clear live location when delivered
+    if (status === 'DELIVERED') {
+      delete liveLocations[taskId];
+    }
+
     res.json(updatedTask);
   } catch (err) {
-    console.error(err);
+    console.error('[tasks POST /update-status]', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// POST /api/tasks/location  — volunteer broadcasts their current location
+// POST /api/tasks/location — volunteer broadcasts their current location
 router.post('/location', authenticate, requireRole('VOLUNTEER'), async (req, res) => {
   try {
     const { taskId, lat, lng } = req.body;
@@ -137,19 +172,22 @@ router.post('/location', authenticate, requireRole('VOLUNTEER'), async (req, res
     liveLocations[taskId] = { lat: parseFloat(lat), lng: parseFloat(lng), updatedAt: new Date() };
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error('[tasks POST /location]', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// GET /api/tasks/location/:taskId  — receiver polls volunteer location
+// GET /api/tasks/location/:taskId — receiver polls volunteer location
 router.get('/location/:taskId', authenticate, async (req, res) => {
   const loc = liveLocations[req.params.taskId];
   if (!loc) return res.json({ lat: null, lng: null });
-  // Expire after 60 s of no update
+  // Expire after 120 s of no update
   const age = (Date.now() - new Date(loc.updatedAt).getTime()) / 1000;
-  if (age > 60) return res.json({ lat: null, lng: null });
-  res.json(loc);
+  if (age > 120) {
+    delete liveLocations[req.params.taskId];
+    return res.json({ lat: null, lng: null, stale: true });
+  }
+  res.json({ ...loc, stale: false });
 });
 
 module.exports = router;

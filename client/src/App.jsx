@@ -21,6 +21,9 @@ import ManageListingsPage from './pages/donor/ManageListingsPage';
 // Volunteer pages
 import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
 
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+
 // Impact
 import ImpactPage from './pages/ImpactPage';
 
@@ -28,13 +31,24 @@ const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user?.role)) {
-    const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer' };
+    const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer', ADMIN: '/admin' };
     return <Navigate to={redirects[user?.role] || '/'} replace />;
   }
   return children;
 };
 
+// Admin layout — no Navbar
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />;
+  return children;
+};
+
 function App() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
     <BrowserRouter>
       <Toaster
@@ -44,7 +58,8 @@ function App() {
           success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
         }}
       />
-      <Navbar />
+      {/* Hide Navbar for admin users — they have their own sidebar */}
+      {!isAdmin && <Navbar />}
       <Routes>
         {/* Public */}
         <Route path="/" element={<HomePage />} />
@@ -64,6 +79,9 @@ function App() {
 
         {/* Volunteer */}
         <Route path="/volunteer" element={<ProtectedRoute roles={['VOLUNTEER']}><VolunteerDashboard /></ProtectedRoute>} />
+
+        {/* Admin — secret route, no Navbar */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

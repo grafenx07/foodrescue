@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Eye } from 'lucide-react';
+import { ArrowLeft, Upload, Eye, MapPin, Loader } from 'lucide-react';
 import api from '../../lib/api';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
@@ -12,25 +12,47 @@ const FOOD_TYPES = [
 ];
 
 const PICKUP_OPTIONS = [
-  { value: "I'LL_DELIVER", label: "I'll deliver it", desc: 'You bring the food to the receiver directly', icon: '🚗' },
+  { value: "VOLUNTEER", label: "Volunteer delivers", desc: 'A volunteer picks up and delivers on your behalf', icon: '🚴' },
+  { value: 'DONOR_DELIVERY', label: 'I will deliver', desc: 'You deliver the food directly to the receiver', icon: '🚗' },
   { value: 'RECEIVER_PICKUP', label: 'Receiver picks up', desc: 'The claimer comes to your location to collect', icon: '🚶' },
-  { value: 'VOLUNTEER', label: 'Volunteer delivers', desc: 'A volunteer picks up and delivers on your behalf', icon: '🚴' },
   { value: 'FLEXIBLE', label: 'Flexible / any', desc: 'Receiver decides how they get the food', icon: '🔄' },
 ];
+
+// Reverse geocode using Nominatim
+async function reverseGeocode(lat, lng) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const data = await res.json();
+    // Return a clean human-readable address
+    const parts = data.display_name?.split(',') || [];
+    return parts.slice(0, 3).join(', ').trim();
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
+}
 
 export default function AddFoodPage() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     title: '', description: '', quantity: '', foodTypes: ['VEG'],
-    expiryTime: '', location: user?.location || 'Koramangala, Bangalore',
+    expiryTime: '', location: user?.location || '',
     pickupArrangement: 'FLEXIBLE',
+    lat: null, lng: null,
   });
+
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const toggleFoodType = (value) => {
     setForm(prev => {
       const already = prev.foodTypes.includes(value);
-      if (already && prev.foodTypes.length === 1) return prev; // keep at least one
+      if (already && prev.foodTypes.length === 1) return prev;
       return {
         ...prev,
         foodTypes: already
@@ -39,15 +61,45 @@ export default function AddFoodPage() {
       };
     });
   };
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  // Auto-detect location on mount if user has no saved location
+  useEffect(() => {
+    if (form.location) return; // Already have a location from profile
+    detectCurrentLocation();
+  }, []);
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation not supported by your browser');
+      return;
+    }
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const name = await reverseGeocode(lat, lng);
+        setForm(prev => ({ ...prev, location: name, lat, lng }));
+        setDetectingLocation(false);
+        toast.success('Location detected!');
+      },
+      (err) => {
+        setDetectingLocation(false);
+        if (err.code === 1) toast.error('Location permission denied');
+        else toast.error('Could not detect location');
+      },
+      { timeout: 10000, enableHighAccuracy: false }
+    );
+  };
 
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleImage = e => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Only image files are allowed');
+        return;
+      }
       setImage(file);
       setImagePreview(URL.createObjectURL(file));
     }
@@ -59,16 +111,24 @@ export default function AddFoodPage() {
       toast.error('Please fill in all required fields');
       return;
     }
+    if (!form.location) {
+      toast.error('Please enter or detect your location');
+      return;
+    }
     setLoading(true);
     try {
       const formData = new FormData();
-      // Spread form but send foodType as the PRIMARY type (first selected)
-      Object.entries(form).forEach(([k, v]) => {
-        if (k !== 'foodTypes') formData.append(k, v);
-      });
-      formData.append('foodType', form.foodTypes[0]); // primary type for DB
-      formData.append('foodTypesAll', form.foodTypes.join(','));
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('quantity', form.quantity);
+      formData.append('foodType', form.foodTypes[0]);
+      formData.append('expiryTime', form.expiryTime);
+      formData.append('location', form.location);
+      formData.append('pickupArrangement', form.pickupArrangement);
+      if (form.lat) formData.append('lat', form.lat);
+      if (form.lng) formData.append('lng', form.lng);
       if (image) formData.append('image', image);
+
       await api.post('/food', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Food listing posted successfully!');
       navigate('/donor');
@@ -79,7 +139,7 @@ export default function AddFoodPage() {
     }
   };
 
-  const hasPreview = form.title || form.quantity || form.foodType;
+  const hasPreview = form.title || form.quantity;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -87,19 +147,11 @@ export default function AddFoodPage() {
         <ArrowLeft size={16} /> Back to dashboard
       </Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Post a food listing</h1>
-      <p className="text-sm text-gray-500 mb-8">I am donating as a</p>
+      <p className="text-sm text-gray-500 mb-8">Share your surplus food with people who need it.</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         {/* Form — 3 cols */}
         <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-5">
-          {/* Donor type selector */}
-          <div className="flex gap-2 flex-wrap">
-            {['Donor PG', 'Restaurant / Mess', 'Individual', 'NGO / Organisation'].map(t => (
-              <button key={t} type="button" className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                t === 'Donor PG' ? 'bg-green-600 text-white border-green-600' : 'border-gray-200 text-gray-600 hover:border-gray-400'
-              }`}>{t}</button>
-            ))}
-          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -111,7 +163,7 @@ export default function AddFoodPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quantity *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quantity (servings) *</label>
               <input
                 name="quantity" type="number" value={form.quantity} onChange={handleChange} required min="1"
                 placeholder="e.g. 15"
@@ -148,7 +200,9 @@ export default function AddFoodPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Delivery arrangement * <span className="text-xs text-gray-400">(how will the food reach the receiver?)</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Delivery arrangement * <span className="text-xs text-gray-400">(how will the food reach the receiver?)</span>
+            </label>
             <div className="grid grid-cols-2 gap-3">
               {PICKUP_OPTIONS.map(opt => (
                 <button
@@ -156,23 +210,65 @@ export default function AddFoodPage() {
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, pickupArrangement: opt.value }))}
                   className={`p-3 rounded-xl border-2 text-left transition-all ${
-                    form.pickupArrangement === opt.value ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                    form.pickupArrangement === opt.value
+                      ? opt.value === 'DONOR_DELIVERY'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <p className="text-lg mb-0.5">{opt.icon}</p>
                   <p className="text-xs font-semibold text-gray-900">{opt.label}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                  {opt.value === 'DONOR_DELIVERY' && (
+                    <span className="inline-block mt-1 text-[10px] font-semibold bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">No volunteer needed</span>
+                  )}
                 </button>
               ))}
             </div>
+            {form.pickupArrangement === 'DONOR_DELIVERY' && (
+              <p className="text-xs text-purple-600 mt-2 flex items-center gap-1.5">
+                🚗 <strong>You are committing to personally deliver</strong> the food once someone claims it.
+              </p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Best before *</label>
             <input
               name="expiryTime" type="datetime-local" value={form.expiryTime} onChange={handleChange} required
+              min={new Date().toISOString().slice(0, 16)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
             />
+          </div>
+
+          {/* Location field with detect button */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup location *</label>
+            <div className="flex gap-2">
+              <input
+                name="location" value={form.location} onChange={e => {
+                  handleChange(e);
+                  setForm(prev => ({ ...prev, lat: null, lng: null }));
+                }}
+                placeholder="e.g. Gold Star Mess, Koramangala, Bangalore"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+              />
+              <button
+                type="button"
+                onClick={detectCurrentLocation}
+                disabled={detectingLocation}
+                className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 transition-colors disabled:opacity-60 whitespace-nowrap"
+              >
+                {detectingLocation ? <Loader size={14} className="animate-spin" /> : <MapPin size={14} />}
+                {detectingLocation ? 'Detecting…' : 'Detect'}
+              </button>
+            </div>
+            {form.lat && form.lng && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <MapPin size={10} /> GPS coordinates captured — map pin will be accurate
+              </p>
+            )}
           </div>
 
           <div>
@@ -202,7 +298,7 @@ export default function AddFoodPage() {
               {loading ? 'Posting...' : 'Post listing'}
             </button>
             <button type="button" onClick={() => navigate('/donor')} className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-              Save as draft
+              Cancel
             </button>
           </div>
         </form>
@@ -231,11 +327,8 @@ export default function AddFoodPage() {
                 </div>
                 {form.title && <h4 className="font-semibold text-gray-900">{form.title}</h4>}
                 {form.quantity && <p className="text-sm text-gray-500 mt-0.5">{form.quantity} servings</p>}
-                {form.pickupArrangement === 'FLEXIBLE' && (
-                  <div className="mt-3 bg-green-50 rounded-xl p-3">
-                    <p className="text-xs font-semibold text-green-800">🔄 Flexible / any</p>
-                    <p className="text-xs text-green-600 mt-0.5">Receiver decides how they get the food</p>
-                  </div>
+                {form.location && (
+                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><MapPin size={10} /> {form.location}</p>
                 )}
               </div>
             )}
@@ -244,17 +337,12 @@ export default function AddFoodPage() {
             <div className="mt-5 pt-5 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">✅ Donation guidelines</p>
               <ul className="space-y-1 text-xs text-gray-500">
-                <li>• Food needs to be safe to eat and prepared for consumption</li>
+                <li>• Food must be safe to eat and prepared for consumption</li>
                 <li>• Mention allergens clearly in notes</li>
                 <li>• Package food in clean, covered containers</li>
                 <li>• Be available during the pickup window</li>
                 <li>• Listings expire automatically after the best before time</li>
               </ul>
-            </div>
-
-            <div className="mt-5 pt-5 border-t border-gray-100">
-              <p className="text-xs text-gray-400 flex items-center gap-1">📍 Location auto-detected from your profile</p>
-              <div className="mt-2 bg-gray-50 rounded-lg p-3 text-xs text-gray-600 font-medium">{form.location}</div>
             </div>
           </div>
         </div>

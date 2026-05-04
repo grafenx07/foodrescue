@@ -11,6 +11,7 @@ enum Role {
   DONOR
   RECEIVER
   VOLUNTEER
+  ADMIN
 }
 
 enum FoodType {
@@ -65,6 +66,8 @@ model FoodListing {
   foodType    FoodType   @default(VEG)
   expiryTime  DateTime
   location    String
+  lat         Float?
+  lng         Float?
   status      FoodStatus @default(AVAILABLE)
   imageUrl    String?
   pickupArrangement String? @default("FLEXIBLE")

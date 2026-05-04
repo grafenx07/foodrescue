@@ -1,34 +1,37 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Package, CheckCircle, Star, Users, RefreshCw, MapPin, Award, Navigation } from 'lucide-react';
+import { Package, CheckCircle, Users, RefreshCw, MapPin, Award, Navigation, Trophy } from 'lucide-react';
 import api from '../../lib/api';
 import useAuthStore from '../../store/authStore';
 import StatusBadge from '../../components/StatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 
-const TOP_VOLUNTEERS = [
-  { name: 'Harsh Patel', rating: 5.0, deliveries: 28, badge: '🥇' },
-  { name: 'Preethi L.', rating: 4.9, deliveries: 24, badge: '🥈' },
-  { name: 'Aroshi G.', rating: 4.8, deliveries: 20, badge: '🥉' },
-  { name: 'Suresh M.', rating: 4.7, deliveries: 18, badge: '' },
-];
+const RANK_BADGES = ['🥇', '🥈', '🥉'];
 
 export default function VolunteerDashboard() {
   const { user } = useAuthStore();
   const [data, setData] = useState({ openClaims: [], myTasks: [], completedTasks: [] });
+  const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(null);
   const [updating, setUpdating] = useState(null);
-  const [sharingTaskId, setSharingTaskId] = useState(null); // currently broadcasting task
+  const [sharingTaskId, setSharingTaskId] = useState(null);
   const watchRef = useRef(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: res } = await api.get('/tasks');
-      setData(res);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      const [tasksRes, boardRes] = await Promise.all([
+        api.get('/tasks'),
+        api.get('/tasks/leaderboard'),
+      ]);
+      setData(tasksRes.data);
+      setLeaderboard(boardRes.data);
+    } catch (e) {
+      console.error('[VolunteerDashboard]', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -61,7 +64,6 @@ export default function VolunteerDashboard() {
 
   const toggleLiveTracking = (taskId) => {
     if (sharingTaskId === taskId) {
-      // Stop sharing
       if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
       setSharingTaskId(null);
@@ -91,6 +93,17 @@ export default function VolunteerDashboard() {
 
   const { openClaims, myTasks, completedTasks } = data;
 
+  // Stats from real data only
+  const statsCards = [
+    { label: 'Completed', value: completedTasks.length },
+    { label: 'Active tasks', value: myTasks.length },
+    { label: 'Open requests', value: openClaims.length },
+  ];
+
+  // Volunteer of the week = rank #1 from leaderboard
+  const topVolunteer = leaderboard[0] || null;
+  const votWProgress = topVolunteer ? Math.min(100, Math.round((topVolunteer.deliveries / 20) * 100)) : 0;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -98,8 +111,8 @@ export default function VolunteerDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Volunteer Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Welcome back, {user?.name?.split(' ')[0]}</p>
         </div>
-        <button onClick={fetchData} className="p-2 text-gray-400 hover:text-gray-600">
-          <RefreshCw size={18} />
+        <button onClick={fetchData} disabled={loading} className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50">
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
@@ -127,6 +140,9 @@ export default function VolunteerDashboard() {
                         <span>{task.claim.receiver.location || task.claim.receiver.name}</span>
                       </p>
                       <p className="text-sm text-gray-600 mt-0.5">Deliver to: <strong>{task.claim.receiver.name}</strong></p>
+                      {task.claim.receiver.phone && (
+                        <p className="text-xs text-gray-400 mt-0.5">📞 {task.claim.receiver.phone}</p>
+                      )}
                     </div>
                     <StatusBadge status={task.status === 'ASSIGNED' ? 'ASSIGNED' : 'PICKED_UP'} />
                   </div>
@@ -206,7 +222,6 @@ export default function VolunteerDashboard() {
                     >
                       {accepting === claim.id ? 'Accepting...' : 'Accept delivery'}
                     </button>
-                    <button className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50">Skip</button>
                   </div>
                 </div>
               ))
@@ -216,90 +231,82 @@ export default function VolunteerDashboard() {
 
         {/* Right — stats + leaderboard */}
         <div className="space-y-4">
-          {/* Stats */}
+          {/* Real stats */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">MY STATS THIS MONTH</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {[
-                { label: 'Deliveries', value: completedTasks.length || 24 },
-                { label: 'Items delivered', value: completedTasks.length * 10 || 156 },
-                { label: 'Avg rating', value: '4.9 ⭐' },
-                { label: 'Recipients', value: completedTasks.length || 62 },
-              ].map(s => (
-                <div key={s.label}>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">MY STATS</h3>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {statsCards.map(s => (
+                <div key={s.label} className="text-center">
                   <p className="text-xl font-bold text-gray-900">{s.value}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
-            <div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Task summary</span>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { label: 'Open requests', value: openClaims.length, color: 'text-orange-600' },
-                  { label: 'My active', value: myTasks.length, color: 'text-blue-600' },
-                  { label: 'Completed today', value: 0, color: 'text-green-600' },
-                ].map(s => (
-                  <div key={s.label} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">{s.label}</span>
-                    <span className={`font-bold ${s.color}`}>{s.value}</span>
+          </div>
+
+          {/* Live leaderboard */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5"><Trophy size={14} className="text-yellow-500" /> TOP VOLUNTEERS</h3>
+              <span className="text-xs text-green-600 font-medium">Community</span>
+            </div>
+            {leaderboard.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">No deliveries yet — be the first!</p>
+            ) : (
+              <div className="space-y-3">
+                {leaderboard.slice(0, 5).map((v, idx) => (
+                  <div key={v.volunteerId} className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      idx === 0 ? 'bg-yellow-100 text-yellow-700' :
+                      idx === 1 ? 'bg-gray-100 text-gray-600' :
+                      idx === 2 ? 'bg-orange-100 text-orange-700' :
+                      'bg-gray-50 text-gray-500'
+                    }`}>
+                      {RANK_BADGES[idx] || v.name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{v.name}</p>
+                      <p className="text-xs text-gray-400">{v.deliveries} deliveries</p>
+                    </div>
+                    <span className="text-sm font-bold text-gray-700">#{v.rank}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Leaderboard */}
-          <div className="bg-white rounded-xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-900">TOP VOLUNTEERS</h3>
-              <span className="text-xs text-green-600 font-medium">Community</span>
-            </div>
-            <div className="space-y-3">
-              {TOP_VOLUNTEERS.map(v => (
-                <div key={v.name} className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">
-                    {v.name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{v.name}</p>
-                    <p className="text-xs text-yellow-500">{'⭐'.repeat(Math.floor(v.rating))} {v.rating}</p>
-                  </div>
-                  <span className="text-sm font-bold text-gray-700">{v.deliveries}</span>
-                  <span>{v.badge}</span>
+          {/* Volunteer of the week — from real leaderboard */}
+          {topVolunteer && (
+            <div className="bg-green-600 rounded-xl p-5">
+              <p className="text-xs text-green-100 font-semibold mb-2">🏆 TOP VOLUNTEER</p>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">
+                  {topVolunteer.name[0]}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Volunteer of the week */}
-          <div className="bg-green-600 rounded-xl p-5">
-            <p className="text-xs text-green-100 font-semibold mb-2">🏆 VOLUNTEER OF THE WEEK</p>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-bold">H</div>
-              <div>
-                <p className="text-white font-semibold">Harshika</p>
-                <p className="text-green-100 text-xs">⭐⭐⭐⭐⭐</p>
+                <div>
+                  <p className="text-white font-semibold">{topVolunteer.name}</p>
+                  <p className="text-green-100 text-xs">{topVolunteer.deliveries} deliveries total</p>
+                </div>
               </div>
+              <div className="bg-white/20 rounded-full h-2 overflow-hidden">
+                <div className="bg-white h-full rounded-full transition-all" style={{ width: `${votWProgress}%` }} />
+              </div>
+              <p className="text-green-100 text-xs mt-1">{topVolunteer.deliveries} / 20 milestone · {votWProgress}%</p>
             </div>
-            <p className="text-green-100 text-xs mb-3">Completed 9 deliveries to earn the badge</p>
-            <div className="bg-white/20 rounded-full h-2 overflow-hidden">
-              <div className="bg-white h-full rounded-full" style={{ width: '75%' }} />
-            </div>
-            <p className="text-green-100 text-xs mt-1">9 / 12 deliveries · 75%</p>
-          </div>
+          )}
 
           {/* Quick actions */}
           <div className="bg-white rounded-xl border border-gray-100 p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick actions</h3>
             <div className="space-y-2">
-              <button className="w-full flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors">
-                <MapPin size={14} /> View map
+              <button
+                onClick={fetchData}
+                className="w-full flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors"
+              >
+                <RefreshCw size={14} /> Refresh tasks
               </button>
               <button className="w-full flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 py-2 hover:bg-gray-50 rounded-lg px-2 transition-colors">
-                <Award size={14} /> My badges
+                <Award size={14} /> My deliveries ({completedTasks.length})
               </button>
             </div>
           </div>

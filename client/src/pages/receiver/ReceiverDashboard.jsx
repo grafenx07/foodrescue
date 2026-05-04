@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Clock, CheckCircle, Star, MapPin, RefreshCw } from 'lucide-react';
+import { Package, Clock, CheckCircle, MapPin, RefreshCw } from 'lucide-react';
 import api from '../../lib/api';
 import useAuthStore from '../../store/authStore';
 import StatusBadge from '../../components/StatusBadge';
 import FoodCard from '../../components/FoodCard';
-import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function ReceiverDashboard() {
@@ -22,7 +21,7 @@ export default function ReceiverDashboard() {
       setFood(foodRes.data);
       setClaims(claimsRes.data);
     } catch (e) {
-      console.error(e);
+      console.error('[ReceiverDashboard]', e);
     } finally {
       setLoading(false);
     }
@@ -32,12 +31,12 @@ export default function ReceiverDashboard() {
 
   const activeClaims = claims.filter(c => !['DELIVERED', 'CANCELLED'].includes(c.status));
   const history = claims.filter(c => ['DELIVERED', 'CANCELLED'].includes(c.status));
+  const deliveredCount = history.filter(c => c.status === 'DELIVERED').length;
 
   const stats = [
     { label: 'Available Nearby', value: food.length, icon: Package, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Active Claims', value: activeClaims.length, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { label: 'Received', value: history.filter(c => c.status === 'DELIVERED').length, icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Your Rating', value: '4.9', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+    { label: 'Meals Received', value: deliveredCount, icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
 
   return (
@@ -47,13 +46,13 @@ export default function ReceiverDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Receiver Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Find and claim available food near you</p>
         </div>
-        <button onClick={fetchData} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-          <RefreshCw size={18} />
+        <button onClick={fetchData} disabled={loading} className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50">
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      {/* Stats — real numbers only */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
         {stats.map(s => (
           <div key={s.label} className="bg-white rounded-xl p-4 border border-gray-100 flex items-center justify-between">
             <div>
@@ -82,7 +81,7 @@ export default function ReceiverDashboard() {
       <div className="flex gap-2 mb-5">
         {[
           { id: 'available', label: `Available Food (${food.length})` },
-          { id: 'claims', label: `My Claims ${activeClaims.length > 0 ? activeClaims.length : ''}` },
+          { id: 'claims', label: `My Claims${activeClaims.length > 0 ? ` (${activeClaims.length})` : ''}` },
           { id: 'history', label: `History (${history.length})` },
         ].map(t => (
           <button
@@ -115,6 +114,7 @@ export default function ReceiverDashboard() {
                   src={claim.food?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'}
                   className="w-full h-full object-cover"
                   alt={claim.food?.title}
+                  onError={e => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'; }}
                 />
               </div>
               <div className="flex-1 min-w-0">

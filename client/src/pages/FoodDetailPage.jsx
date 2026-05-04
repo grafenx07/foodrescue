@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Clock, Users, MapPin, ArrowLeft, User, Phone } from 'lucide-react';
+import { Clock, Users, MapPin, ArrowLeft, User, Phone, Truck } from 'lucide-react';
 import { Marker, Popup } from 'react-leaflet';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../lib/api';
@@ -130,30 +130,47 @@ export default function FoodDetailPage() {
                 <span>{listing.donor.phone}</span>
               </div>
             )}
+            {listing.pickupArrangement === 'DONOR_DELIVERY' && (
+              <div className="flex items-center gap-3 text-sm bg-purple-50 rounded-xl px-3 py-2">
+                <Truck size={16} className="text-purple-600" />
+                <span className="text-purple-700 font-medium">Donor will deliver this to you</span>
+              </div>
+            )}
           </div>
 
           {listing.status === 'AVAILABLE' && (
             <>
-              <div className="mb-5">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Pickup option</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { value: 'SELF', label: '🚶 Self Pickup', desc: 'Go pick it up yourself' },
-                    { value: 'VOLUNTEER', label: '🚴 Request Volunteer', desc: 'A volunteer delivers it to you' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setPickupType(opt.value)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        pickupType === opt.value ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
-                    </button>
-                  ))}
+              {listing.pickupArrangement === 'DONOR_DELIVERY' ? (
+                <div className="mb-5 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <p className="text-sm font-semibold text-purple-800 flex items-center gap-2 mb-1">
+                    <Truck size={15} /> Delivery by donor
+                  </p>
+                  <p className="text-xs text-purple-600">
+                    The donor will personally deliver this food to your registered location. No pickup or volunteer needed.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="mb-5">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Pickup option</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: 'SELF', label: '🚶 Self Pickup', desc: 'Go pick it up yourself' },
+                      { value: 'VOLUNTEER', label: '🚴 Request Volunteer', desc: 'A volunteer delivers it to you' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setPickupType(opt.value)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          pickupType === opt.value ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {isAuthenticated && user?.role === 'RECEIVER' ? (
                 <button

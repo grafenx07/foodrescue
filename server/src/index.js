@@ -9,11 +9,25 @@ const claimRoutes = require('./routes/claims');
 const volunteerRoutes = require('./routes/volunteer');
 const donorRoutes = require('./routes/donor');
 const statsRoutes = require('./routes/stats');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+// CORS – in development allow any localhost origin (port may shift when others are running)
+// In production only the exact ALLOWED_ORIGIN is permitted
+const allowedOrigin = process.env.ALLOWED_ORIGIN || 'http://localhost:5173';
+const isDev = (process.env.NODE_ENV || 'development') === 'development';
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // curl, mobile, server-to-server
+    if (isDev && /^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+    if (origin === allowedOrigin) return callback(null, true);
+    callback(new Error(`CORS policy: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -23,14 +37,18 @@ app.use('/api/claim', claimRoutes);
 app.use('/api/tasks', volunteerRoutes);
 app.use('/api/donor', donorRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/admin', adminRoutes);
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date(), env: process.env.NODE_ENV }));
 
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('[Error]', err.stack);
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 FoodRescue server running on http://localhost:${PORT}`);
+  console.log(`   CORS allowed origin: ${allowedOrigin}`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
 });

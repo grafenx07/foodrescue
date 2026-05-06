@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Users, MapPin, Leaf } from 'lucide-react';
+import { Clock, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import StatusBadge from './StatusBadge';
 
@@ -22,9 +22,16 @@ const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1565299507177-b0ac66763828?w=400&q=80',
 ];
 
+/**
+ * FoodCard
+ * @param {object}   listing   - food listing object
+ * @param {function} onClaim   - if provided, show Claim button and call this fn with listing
+ * @param {boolean}  showClaim - set false to hide claim button entirely (default true)
+ */
 export default function FoodCard({ listing, onClaim, showClaim = true }) {
   const expiry = new Date(listing.expiryTime);
   const isExpiringSoon = expiry - new Date() < 2 * 60 * 60 * 1000;
+  const isExpired = expiry < new Date();
   const imageIdx = listing.id ? parseInt(listing.id.replace(/-/g, '').slice(-4), 16) % PLACEHOLDER_IMAGES.length : 0;
   const imgSrc = listing.imageUrl ? listing.imageUrl : PLACEHOLDER_IMAGES[imageIdx];
 
@@ -39,11 +46,11 @@ export default function FoodCard({ listing, onClaim, showClaim = true }) {
             onError={(e) => { e.target.src = PLACEHOLDER_IMAGES[0]; }}
           />
           <div className="absolute top-2 left-2 flex gap-1.5">
-            {isExpiringSoon && (
+            {isExpiringSoon && !isExpired && (
               <span className="bg-orange-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">Expiring</span>
             )}
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${FOOD_TYPE_COLORS[listing.foodType]}`}>
-              {FOOD_TYPE_LABELS[listing.foodType]}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${FOOD_TYPE_COLORS[listing.foodType] || 'bg-gray-100 text-gray-600'}`}>
+              {FOOD_TYPE_LABELS[listing.foodType] || listing.foodType}
             </span>
           </div>
           <div className="absolute top-2 right-2">
@@ -56,7 +63,7 @@ export default function FoodCard({ listing, onClaim, showClaim = true }) {
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <Clock size={12} />
-              <span>in {formatDistanceToNow(expiry)}</span>
+              <span>{isExpired ? 'Expired' : `in ${formatDistanceToNow(expiry)}`}</span>
             </div>
             <div className="flex items-center gap-1">
               <Users size={12} />
@@ -65,14 +72,32 @@ export default function FoodCard({ listing, onClaim, showClaim = true }) {
           </div>
         </div>
       </Link>
-      {showClaim && listing.status === 'AVAILABLE' && (
+
+      {/* Claim button — only if the listing is available AND onClaim is provided */}
+      {showClaim && listing.status === 'AVAILABLE' && onClaim && (
         <div className="px-4 pb-4">
           <button
-            onClick={() => onClaim?.(listing)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClaim(listing);
+            }}
             className="w-full bg-green-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Claim
           </button>
+        </div>
+      )}
+
+      {/* Fallback: show View Details when no onClaim handler */}
+      {showClaim && listing.status === 'AVAILABLE' && !onClaim && (
+        <div className="px-4 pb-4">
+          <Link
+            to={`/food/${listing.id}`}
+            className="block w-full bg-green-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-green-700 transition-colors text-center"
+          >
+            View & Claim
+          </Link>
         </div>
       )}
     </div>

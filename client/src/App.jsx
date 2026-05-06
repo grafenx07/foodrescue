@@ -8,6 +8,8 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import FoodDetailPage from './pages/FoodDetailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Receiver pages
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
@@ -67,6 +69,8 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/food/:id" element={<FoodDetailPage />} />
         <Route path="/impact" element={<ImpactPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Receiver */}
         <Route path="/receiver" element={<ProtectedRoute roles={['RECEIVER']}><ReceiverDashboard /></ProtectedRoute>} />

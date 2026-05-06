@@ -51,9 +51,20 @@ model User {
   location  String?
   createdAt DateTime @default(now())
 
-  foodListings    FoodListing[]
-  claims          Claim[]
-  volunteerTasks  VolunteerTask[]
+  foodListings        FoodListing[]
+  claims              Claim[]
+  volunteerTasks      VolunteerTask[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model FoodListing {

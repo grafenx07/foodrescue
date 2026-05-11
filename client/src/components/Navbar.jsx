@@ -53,7 +53,7 @@ export default function Navbar() {
     if (user?.role === 'ADMIN') return [{ to: '/admin', label: 'Admin Panel' }];
     const base = [{ to: '/', label: 'Browse food' }, { to: '/impact', label: 'Impact' }];
     if (user?.role === 'DONOR')     return [...base, { to: '/donor', label: 'My Donations' }, { to: '/donor/add', label: '+ Post Food' }];
-    if (user?.role === 'RECEIVER')  return [...base, { to: '/receiver', label: 'My Claims' }, { to: '/receiver', label: 'Dashboard' }];
+    if (user?.role === 'RECEIVER')  return [...base, { to: '/receiver', label: 'Dashboard' }];
     if (user?.role === 'VOLUNTEER') return [...base, { to: '/volunteer', label: 'Deliveries' }];
     return base;
   };
@@ -75,9 +75,9 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
-            {navLinks.map(link => (
+          {navLinks.map((link, idx) => (
               <Link
-                key={link.to}
+                key={`${idx}-${link.to}`}
                 to={link.to}
                 className={`text-sm font-medium transition-colors ${
                   isActive(link.to)
@@ -149,9 +149,9 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 py-3 space-y-1">
-            {navLinks.map(link => (
+            {navLinks.map((link, idx) => (
               <Link
-                key={link.to}
+                key={`mob-${idx}-${link.to}`}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
                 className={`block px-3 py-2 text-sm rounded-lg transition-colors ${

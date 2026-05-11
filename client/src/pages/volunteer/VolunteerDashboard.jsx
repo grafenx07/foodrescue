@@ -114,6 +114,14 @@ export default function VolunteerDashboard() {
     );
   };
 
+  const navigateForTask = (task) => {
+    const dest = task.status === 'ASSIGNED'
+      ? task.claim.food.donor.location   // go pick up
+      : task.claim.receiver.location;    // go deliver
+    if (!dest) { toast.error('No address available'); return; }
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(dest)}`, '_blank');
+  };
+
   // Clean up on unmount
   useEffect(() => () => {
     if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
@@ -246,6 +254,13 @@ export default function VolunteerDashboard() {
                           </button>
                         </div>
                       )}
+                      <button
+                        onClick={() => navigateForTask(task)}
+                        className="px-3 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                        title={task.status === 'ASSIGNED' ? 'Navigate to pickup' : 'Navigate to receiver'}
+                      >
+                        <Navigation size={14} /> {task.status === 'ASSIGNED' ? 'To Pickup' : 'To Receiver'}
+                      </button>
                       <button
                         onClick={() => toggleLiveTracking(task.id)}
                         className={`px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors ${

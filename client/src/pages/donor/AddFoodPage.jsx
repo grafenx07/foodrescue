@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Eye, MapPin, Loader } from 'lucide-react';
+import { ArrowLeft, Upload, Eye, MapPin } from 'lucide-react';
 import api from '../../lib/api';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
+import LocationInput from '../../components/LocationInput';
 
 const FOOD_TYPES = [
   { value: 'VEG', label: '✅ Veg', color: 'border-green-500 bg-green-50 text-green-700' },
@@ -18,20 +19,11 @@ const PICKUP_OPTIONS = [
   { value: 'FLEXIBLE', label: 'Flexible / any', desc: 'Receiver decides how they get the food', icon: '🔄' },
 ];
 
-// Reverse geocode using Nominatim
-async function reverseGeocode(lat, lng) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const data = await res.json();
-    // Return a clean human-readable address
-    const parts = data.display_name?.split(',') || [];
-    return parts.slice(0, 3).join(', ').trim();
-  } catch {
-    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-  }
+// Helper: return a datetime-local string 24h from now
+function defaultExpiry() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 16);
 }
 
 export default function AddFoodPage() {
@@ -39,7 +31,8 @@ export default function AddFoodPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     title: '', description: '', quantity: '', foodTypes: ['VEG'],
-    expiryTime: '', location: user?.location || '',
+    expiryTime: defaultExpiry(),
+    location: user?.location || '',
     pickupArrangement: 'FLEXIBLE',
     lat: null, lng: null,
   });
@@ -47,7 +40,6 @@ export default function AddFoodPage() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const toggleFoodType = (value) => {
     setForm(prev => {
@@ -62,36 +54,11 @@ export default function AddFoodPage() {
     });
   };
 
-  // Auto-detect location on mount if user has no saved location
-  useEffect(() => {
-    if (form.location) return; // Already have a location from profile
-    detectCurrentLocation();
-  }, []);
-
-  const detectCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation not supported by your browser');
-      return;
-    }
-    setDetectingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        const name = await reverseGeocode(lat, lng);
-        setForm(prev => ({ ...prev, location: name, lat, lng }));
-        setDetectingLocation(false);
-        toast.success('Location detected!');
-      },
-      (err) => {
-        setDetectingLocation(false);
-        if (err.code === 1) toast.error('Location permission denied');
-        else toast.error('Could not detect location');
-      },
-      { timeout: 10000, enableHighAccuracy: false }
-    );
-  };
-
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleLocationChange = (name, lat, lng) => {
+    setForm(prev => ({ ...prev, location: name, lat: lat ?? null, lng: lng ?? null }));
+  };
 
   const handleImage = e => {
     const file = e.target.files[0];
@@ -240,30 +207,19 @@ export default function AddFoodPage() {
               min={new Date().toISOString().slice(0, 16)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
             />
+            <p className="text-xs text-gray-400 mt-1">Select the date and time after which the food is no longer safe to consume.</p>
           </div>
 
-          {/* Location field with detect button */}
+          {/* Location field with autocomplete */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Pickup location *</label>
-            <div className="flex gap-2">
-              <input
-                name="location" value={form.location} onChange={e => {
-                  handleChange(e);
-                  setForm(prev => ({ ...prev, lat: null, lng: null }));
-                }}
-                placeholder="e.g. Gold Star Mess, Koramangala, Bangalore"
-                className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
-              />
-              <button
-                type="button"
-                onClick={detectCurrentLocation}
-                disabled={detectingLocation}
-                className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-1.5 transition-colors disabled:opacity-60 whitespace-nowrap"
-              >
-                {detectingLocation ? <Loader size={14} className="animate-spin" /> : <MapPin size={14} />}
-                {detectingLocation ? 'Detecting…' : 'Detect'}
-              </button>
-            </div>
+            <LocationInput
+              value={form.location}
+              onChange={handleLocationChange}
+              onDetect={() => {}}
+              placeholder="e.g. Gold Star Mess, Koramangala, Bangalore"
+              required
+            />
             {form.lat && form.lng && (
               <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                 <MapPin size={10} /> GPS coordinates captured — map pin will be accurate

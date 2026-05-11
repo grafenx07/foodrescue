@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
+import useLocationPermission from './hooks/useLocationPermission';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -48,8 +49,11 @@ const AdminRoute = ({ children }) => {
 };
 
 function App() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
+
+  // Request geolocation permission as soon as any authenticated user opens the app
+  useLocationPermission(isAuthenticated);
 
   return (
     <BrowserRouter>

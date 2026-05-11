@@ -2,12 +2,15 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
+import useLocationPermission from './hooks/useLocationPermission';
 
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import FoodDetailPage from './pages/FoodDetailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // Receiver pages
 import ReceiverDashboard from './pages/receiver/ReceiverDashboard';
@@ -21,6 +24,9 @@ import ManageListingsPage from './pages/donor/ManageListingsPage';
 // Volunteer pages
 import VolunteerDashboard from './pages/volunteer/VolunteerDashboard';
 
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+
 // Impact
 import ImpactPage from './pages/ImpactPage';
 
@@ -28,13 +34,27 @@ const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user?.role)) {
-    const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer' };
+    const redirects = { DONOR: '/donor', RECEIVER: '/receiver', VOLUNTEER: '/volunteer', ADMIN: '/admin' };
     return <Navigate to={redirects[user?.role] || '/'} replace />;
   }
   return children;
 };
 
+// Admin layout — no Navbar
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />;
+  return children;
+};
+
 function App() {
+  const { user, isAuthenticated } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Request geolocation permission as soon as any authenticated user opens the app
+  useLocationPermission(isAuthenticated);
+
   return (
     <BrowserRouter>
       <Toaster
@@ -44,7 +64,8 @@ function App() {
           success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
         }}
       />
-      <Navbar />
+      {/* Hide Navbar for admin users — they have their own sidebar */}
+      {!isAdmin && <Navbar />}
       <Routes>
         {/* Public */}
         <Route path="/" element={<HomePage />} />
@@ -52,6 +73,8 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/food/:id" element={<FoodDetailPage />} />
         <Route path="/impact" element={<ImpactPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Receiver */}
         <Route path="/receiver" element={<ProtectedRoute roles={['RECEIVER']}><ReceiverDashboard /></ProtectedRoute>} />
@@ -64,6 +87,9 @@ function App() {
 
         {/* Volunteer */}
         <Route path="/volunteer" element={<ProtectedRoute roles={['VOLUNTEER']}><VolunteerDashboard /></ProtectedRoute>} />
+
+        {/* Admin — secret route, no Navbar */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

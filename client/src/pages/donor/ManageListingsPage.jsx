@@ -118,6 +118,11 @@ export default function ManageListingsPage() {
     toast('Location sharing stopped.', { icon: '📍' });
   };
 
+  const navigateToReceiver = (receiverLocation) => {
+    if (!receiverLocation) { toast.error('No receiver address available'); return; }
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(receiverLocation)}`, '_blank');
+  };
+
   const { listings } = data;
 
   return (
@@ -223,6 +228,16 @@ export default function ManageListingsPage() {
                         ✕
                       </button>
                     </div>
+                  )}
+
+                  {/* Navigate to receiver */}
+                  {(claim.status === 'ASSIGNED' || claim.status === 'PICKED_UP') && claim.receiver?.location && (
+                    <button
+                      onClick={() => navigateToReceiver(claim.receiver.location)}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 transition-colors"
+                    >
+                      <Navigation size={12} /> Navigate to Receiver
+                    </button>
                   )}
 
                   {/* Live location share */}

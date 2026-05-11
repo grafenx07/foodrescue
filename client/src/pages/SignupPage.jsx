@@ -4,6 +4,7 @@ import { Leaf } from 'lucide-react';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
+import LocationInput from '../components/LocationInput';
 
 const ROLES = [
   { value: 'DONOR', label: '🍽️ Food Donor', desc: 'Restaurant, mess, hostel or individual' },
@@ -84,10 +85,11 @@ export default function SignupPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Location (optional)</label>
-                <input
-                  name="location" value={form.location} onChange={handleChange}
+                <LocationInput
+                  value={form.location}
+                  onChange={(name, lat, lng) => setForm(prev => ({ ...prev, location: name }))}
                   placeholder="Area, City"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+                  inputClass="py-3"
                 />
               </div>
             </div>

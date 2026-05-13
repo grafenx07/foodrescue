@@ -1,96 +1,82 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/version-1.1.0-green?style=for-the-badge" alt="version"/>
-<img src="https://img.shields.io/badge/license-ISC-blue?style=for-the-badge" alt="license"/>
-<img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge" alt="PRs Welcome"/>
-<img src="https://img.shields.io/badge/node-%3E%3D18.0-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node"/>
-<img src="https://img.shields.io/badge/react-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
+![FoodRescue](https://img.shields.io/badge/FoodRescue-Real%20Time%20Food%20Logistics-2ecc71?style=flat-square&labelColor=1a1a1a)
+![Version](https://img.shields.io/badge/version-1.1.0-2ecc71?style=flat-square)
+![License](https://img.shields.io/badge/license-ISC-3498db?style=flat-square)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0-339933?style=flat-square&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/react-19-61DAFB?style=flat-square&logo=react)
+![PRs](https://img.shields.io/badge/PRs-Welcome-27ae60?style=flat-square)
 
-<br/><br/>
+<br />
 
-```
-  ██████╗  ██████╗  ██████╗ ██████╗     ██████╗ ███████╗███████╗ ██████╗██╗   ██╗███████╗
- ██╔════╝ ██╔═══██╗██╔═══██╗██╔══██╗    ██╔══██╗██╔════╝██╔════╝██╔════╝██║   ██║██╔════╝
- ██║  ███╗██║   ██║██║   ██║██║  ██║    ██████╔╝█████╗  ███████╗██║     ██║   ██║█████╗
- ██║   ██║██║   ██║██║   ██║██║  ██║    ██╔══██╗██╔══╝  ╚════██║██║     ██║   ██║██╔══╝
- ╚██████╔╝╚██████╔╝╚██████╔╝██████╔╝    ██║  ██║███████╗███████║╚██████╗╚██████╔╝███████╗
-  ╚═════╝  ╚═════╝  ╚═════╝ ╚═════╝     ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝ ╚═════╝╚══════╝
-```
+# 🍱 FoodRescue
 
-### 🍱 Connecting surplus food with people who need it — in real time.
+**Connecting surplus food with communities in need — powered by real-time logistics**
 
-**[Live Demo](#) · [Report Bug](https://github.com/grafenx07/foodrescue/issues) · [Request Feature](https://github.com/grafenx07/foodrescue/issues) · [Contribute](#contributing)**
+[View Demo](#features) • [Report Issue](https://github.com/grafenx07/foodrescue/issues) • [Request Feature](https://github.com/grafenx07/foodrescue/issues) • [Contribute](#contributing)
 
 </div>
 
 ---
 
-## 🌍 The Problem We're Solving
+## 🎯 About FoodRescue
 
-Every day, **millions of kilograms of edible food** are thrown away by restaurants, hostels, messes, and households — while millions of people go to bed hungry. FoodRescue is a **full-stack real-time logistics platform** that bridges this gap by connecting three groups:
+FoodRescue is a **full-stack real-time logistics platform** designed to eliminate food waste by creating an efficient marketplace between food donors and receivers. Every day, millions of kilograms of edible food are discarded while communities face food insecurity. We bridge that gap through intelligent routing, volunteer coordination, and seamless real-time tracking.
 
-| Role | Who | What they do |
-|------|-----|-------------|
-| 🍽️ **Donor** | Restaurant, mess, hostel, individual | Posts surplus food listings |
-| 🤝 **Receiver** | NGO, individual, community org | Claims food and tracks delivery |
-| 🚴 **Volunteer** | Anyone with a bike | Picks up and delivers claimed food |
-
-> _"The world produces enough food for everyone. Logistics is all that stands between waste and relief."_
+### The Impact
+- **Prevent food waste** from restaurants, messes, hostels, and households
+- **Serve communities** through NGOs, individuals, and community organizations
+- **Empower volunteers** by providing efficient delivery coordination
 
 ---
 
-## ✨ Features
+## 🌟 Core Features
 
-### 🗺️ Live Tracking Map — Uber/Swiggy Style
-- **Road-following routes** powered by the OSRM routing engine (no straight lines)
-- **Animated directional polylines** — moving dashes show direction of travel in real time
-- **Role-aware route switching** — automatically changes route as the delivery progresses:
-  - Volunteer: `pickup location → donor` (ASSIGNED) then `volunteer → receiver` (PICKED_UP)
-  - Self-pickup: `receiver GPS → donor location` with a Navigate button
-  - Donor delivery: `live donor position → receiver address`
-- **Google Maps-style pulsing blue dot** for user's current GPS location
-- **Modern Carto Voyager tiles** — clean, professional basemap
-- **Animated role-based map icons**: bouncing 🚴 volunteers, swaying 🚗 donors, glowing 🏠 receivers
+### 🗺️ Intelligent Live Tracking
+- **Road-following routes** powered by OSRM (Open Source Routing Machine) — realistic navigation, not straight lines
+- **Real-time GPS tracking** with Google Maps-style pulsing location indicator
+- **Smart route adaptation** based on delivery stage (pickup → delivery)
+- **Animated directional polylines** showing direction of travel
+- **Professional Carto Voyager tiles** for clean, modern map experience
+- **Role-aware route switching** automatically updates as delivery progresses
 
-### 🔐 Secure Authentication & Roles
-- JWT-based authentication with bcrypt password hashing
-- Four distinct roles: Donor, Receiver, Volunteer, Admin
-- Secure **password reset via email** (SMTP/Gmail with token expiry)
-- Protected routes enforced on both frontend and backend
+### 🔐 Enterprise-Grade Security
+- **JWT-based authentication** with bcrypt password hashing
+- **Four distinct role system**: Donor, Receiver, Volunteer, Admin
+- **Secure password reset** via email with time-limited tokens
+- **Protected routes** enforced on both frontend and backend
+- **OTP-based handover verification** — 6-digit codes prevent fraudulent confirmations
 
-### 📦 Food Listing Lifecycle
-- Donors post food with title, quantity, food type, expiry time, and photo
-- Flexible delivery arrangements: **Volunteer delivers | Donor delivers | Receiver picks up | Flexible**
-- Full status pipeline: `AVAILABLE → CLAIMED → ASSIGNED → PICKED_UP → DELIVERED`
-- Auto-expiry of listings past their best-before time
+### 📍 Smart Location Services
+- **Nominatim-powered autocomplete** for place name searching with precise coordinates
+- **GPS "Detect" button** for reverse-geocoding current position
+- **Auto-prompts** for location permission across all user roles
+- **Coordinates stored** alongside addresses for accurate map pins
 
-### 🚀 Delivery Verification with OTP
-- **OTP-based handover confirmation** — receiver sees a 6-digit code; deliverer enters it to mark as delivered
-- Prevents fraudulent delivery confirmations
-- OTPs are auto-generated server-side when food is picked up
-
-### 📍 Smart Location Handling
-- **Nominatim-powered autocomplete** on all location fields — type a place name, pick from suggestions, get precise coordinates instantly
-- GPS "Detect" button for reverse-geocoding current position
-- Coordinates stored alongside text addresses for accurate map pins
-- Global geolocation permission prompt on first login for all roles
+### 📦 Complete Food Listing Lifecycle
+- Post food with: title, quantity, food type, expiry time, and photos
+- **Flexible delivery options**: Volunteer delivers | Donor delivers | Receiver picks up | Flexible
+- **Smart status pipeline**: `AVAILABLE → CLAIMED → ASSIGNED → PICKED_UP → DELIVERED`
+- **Auto-expiry** of listings past their best-before time
 
 ### 📡 Real-Time Location Sharing
-- Volunteers share live GPS position during delivery (every 5 s)
-- Donor shares live location during self-delivery
-- Receiver can share their location back to the deliverer
-- Live positions polled every 8 s on the tracking page
+- **Live GPS updates** every 5 seconds during active delivery
+- **Volunteer position sharing** during pickup and delivery phases
+- **Donor live location** during self-delivery
+- **Receiver can share location** back to deliverer for easier pickup
+- **Poll-based updates** every 8 seconds on tracking pages
 
-### 🛡️ Admin Control Panel
-- Manage all users, listings, and claims from a single dashboard
-- Overview stats: active listings, total deliveries, volunteer count
-- Delete listings, revoke access, monitor platform health
+### 📊 Admin Control Panel
+- **Centralized dashboard** for managing users, listings, and claims
+- **Platform overview**: Active listings, total deliveries, volunteer count
+- **User management** with access controls
+- **Delivery monitoring** and support tools
 
-### 📧 Transactional Email Notifications
-- Registration welcome email
-- Food claim notifications to donors
+### 📧 Transactional Notifications
+- Registration welcome emails
+- Claim notifications to donors
 - Volunteer assignment alerts
-- Password reset with secure tokenised links (expires in 1 h)
+- Secure password reset with 1-hour token expiry
 
 ---
 
@@ -98,294 +84,400 @@ Every day, **millions of kilograms of edible food** are thrown away by restauran
 
 ```
 FoodRescue/
-├── client/                  # React 19 + Vite frontend
+├── client/                    # React 19 + Vite Frontend
 │   └── src/
-│       ├── components/      # Shared UI — MapView, LocationInput, Navbar, StatusBadge
-│       ├── hooks/           # useLocationPermission
-│       ├── lib/             # Axios instance with JWT interceptor
-│       ├── pages/
-│       │   ├── donor/       # AddFoodPage, ManageListingsPage
-│       │   ├── receiver/    # ReceiverDashboard, TrackingPage
-│       │   ├── volunteer/   # VolunteerDashboard
-│       │   └── admin/       # AdminDashboard
-│       └── store/           # Zustand auth store
+│       ├── components/        # Reusable UI components
+│       │   ├── MapView.jsx
+│       │   ├── LocationInput.jsx
+│       │   ├── Navbar.jsx
+│       │   └── StatusBadge.jsx
+│       ├── hooks/             # Custom React hooks
+│       │   └── useLocationPermission.js
+│       ├── lib/               # Shared utilities
+│       │   └── axios.js       # API client with JWT interceptor
+│       ├── pages/             # Feature pages
+│       │   ├── donor/
+│       │   ├── receiver/
+│       │   ├── volunteer/
+│       │   └── admin/
+│       └── store/             # Zustand state management
 │
-└── server/                  # Node.js + Express backend
+└── server/                    # Node.js + Express Backend
     ├── prisma/
-    │   └── schema.prisma    # PostgreSQL schema
+    │   └── schema.prisma      # PostgreSQL data model
     └── src/
-        ├── middleware/      # JWT auth, multer upload
-        ├── routes/          # auth, food, claims, donor, volunteer, admin, stats
-        └── services/        # emailService (Nodemailer)
+        ├── middleware/        # Auth, file uploads
+        ├── routes/            # API endpoints
+        ├── services/          # Business logic
+        │   └── emailService.js
+        └── utils/             # Helper functions
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-**Frontend**
+### Frontend
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | React 19 + Vite 8 |
+| **Styling** | Tailwind CSS v4 |
+| **Maps & Routing** | React-Leaflet + Leaflet.js + OSRM |
+| **Geocoding** | Nominatim (OpenStreetMap) |
+| **State Management** | Zustand |
+| **HTTP Client** | Axios |
+| **Routing** | React Router v7 |
+| **Date Handling** | date-fns |
+| **UI Components** | Lucide React Icons |
+| **Notifications** | react-hot-toast |
 
-| | Technology |
-|---|---|
-| ⚡ Framework | React 19 + Vite 8 |
-| 💅 Styling | Tailwind CSS v4 |
-| 🗺️ Maps | React-Leaflet + Leaflet.js |
-| 🧭 Routing | React Router v7 |
-| 🔄 State | Zustand |
-| 📡 HTTP | Axios |
-| 🗾 Geocoding | Nominatim (OpenStreetMap) |
-| 🛣️ Road Routing | OSRM (Open Source Routing Machine) |
-| 🗓️ Dates | date-fns |
-| 🔔 Toasts | react-hot-toast |
-| 🎨 Icons | Lucide React |
-
-**Backend**
-
-| | Technology |
-|---|---|
-| 🚀 Runtime | Node.js 18+ |
-| 🌐 Framework | Express 5 |
-| 🗄️ Database | PostgreSQL |
-| 🔗 ORM | Prisma 5 |
-| 🔐 Auth | JWT + bcryptjs |
-| 📸 Uploads | Multer |
-| 📧 Email | Nodemailer (Gmail SMTP) |
-| 🆔 IDs | UUID v4 |
+### Backend
+| Layer | Technology |
+|-------|-----------|
+| **Runtime** | Node.js 18+ |
+| **Framework** | Express 5 |
+| **Database** | PostgreSQL |
+| **ORM** | Prisma 5 |
+| **Authentication** | JWT + bcryptjs |
+| **File Uploads** | Multer |
+| **Email Service** | Nodemailer (Gmail SMTP) |
+| **ID Generation** | UUID v4 |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js ≥ 18.0
+- PostgreSQL (local or cloud)
+- Gmail account (optional — for email features)
 
-- Node.js ≥ 18
-- PostgreSQL database
-- Gmail account (for SMTP email — optional for local dev)
-
-### 1. Clone the repository
+### 1️⃣ Clone & Setup
 
 ```bash
 git clone https://github.com/grafenx07/foodrescue.git
 cd foodrescue
 ```
 
-### 2. Set up environment variables
+### 2️⃣ Environment Configuration
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and fill in your values:
+Edit `.env` with your values:
 
 ```env
+# Database
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/foodrescue"
-JWT_SECRET="your-super-secret-key"
+
+# Authentication
+JWT_SECRET="your-generated-secret-key"
+
+# Server
 PORT=4000
 NODE_ENV=development
 ALLOWED_ORIGIN=http://localhost:5173
 
-# Gmail SMTP (optional — needed for password reset & notifications)
+# Email (Optional — for password reset & notifications)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your@gmail.com
-SMTP_PASS=xxxx xxxx xxxx xxxx
-EMAIL_FROM="FoodRescue <your@gmail.com>"
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM="FoodRescue <noreply@foodrescue.local>"
 APP_URL=http://localhost:5173
 ```
 
-> **Tip:** Generate a strong JWT secret with:
-> ```bash
-> node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-> ```
+**Generate a secure JWT secret:**
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
 
-### 3. Install dependencies
+### 3️⃣ Install Dependencies
 
 ```bash
-# Backend dependencies (root)
+# Backend
 npm install
 
-# Frontend dependencies
+# Frontend
 cd client && npm install && cd ..
 ```
 
-### 4. Set up the database
+### 4️⃣ Database Setup
 
 ```bash
-# Push schema to your PostgreSQL database
+# Push Prisma schema to PostgreSQL
 npm run db:push
 
-# (Optional) Open Prisma Studio to browse data
+# Optional: Open Prisma Studio to browse data
 npm run db:studio
 ```
 
-### 5. Run the development servers
+### 5️⃣ Run Development Servers
 
-Open two terminals:
-
+**Terminal 1 — Backend (http://localhost:4000)**
 ```bash
-# Terminal 1 — Backend (port 4000)
 npm run dev
+```
 
-# Terminal 2 — Frontend (port 5173)
+**Terminal 2 — Frontend (http://localhost:5173)**
+```bash
 cd client && npm run dev
 ```
 
-Visit **[http://localhost:5173](http://localhost:5173)** 🎉
+Visit **http://localhost:5173** to start using FoodRescue! 🎉
 
 ---
 
-## 📱 How It Works
+## 📋 User Flows
 
+### 🍽️ Donor Workflow
 ```
-Donor posts food  →  Receiver claims it  →  Volunteer assigned
-                                                    ↓
-                              Live map: Volunteer → Donor (pickup)
-                                                    ↓
-                              Live map: Volunteer → Receiver (delivery)
-                                                    ↓
-                              Receiver reads OTP → Delivery confirmed ✅
-```
-
-### Self-Pickup Flow
-```
-Receiver claims food (SELF pickup)
-    → Map shows route: Receiver → Donor
-    → Receiver goes, taps "I've Picked Up"
-    → Status: DELIVERED ✅
+1. Register as Donor
+2. Post Food Listing (title, quantity, expiry, photo)
+3. Choose delivery method:
+   - Volunteer picks up from me
+   - I will deliver myself
+   - Flexible arrangement
+4. Receive notification when claimed
+5. Meet volunteer/receiver for handoff
+6. Confirm delivery with OTP
 ```
 
-### Donor Delivery Flow
+### 🤝 Receiver Workflow
 ```
-Donor posts food with "I will deliver"
-    → Receiver claims
-    → Donor shares live location on map
-    → Map shows route: Donor → Receiver
-    → OTP verification on arrival ✅
+1. Register as Receiver
+2. Browse available listings
+3. Claim food listing
+4. Choose pickup method:
+   - Self-pickup (navigate to donor)
+   - Volunteer delivery
+   - Donor delivery
+5. Receive live tracking updates
+6. Verify OTP when food arrives
+7. Mark as received
+```
+
+### 🚴 Volunteer Workflow
+```
+1. Register as Volunteer
+2. View available delivery tasks
+3. Accept pickup task
+4. Navigate to donor location
+5. Confirm pickup with OTP
+6. Navigate to receiver location
+7. Confirm delivery with OTP
+8. Task complete - Earn volunteer points
 ```
 
 ---
 
-## 🗺️ API Overview
+## 📡 API Reference
 
+### Authentication
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/auth/register` | Register new user |
-| `POST` | `/api/auth/login` | Login, receive JWT |
-| `POST` | `/api/auth/forgot-password` | Send password reset email |
-| `POST` | `/api/auth/reset-password` | Reset password with token |
-| `GET` | `/api/food` | Browse available listings |
-| `POST` | `/api/food` | Donor creates listing |
-| `POST` | `/api/claim/:foodId` | Receiver claims food |
+| `POST` | `/api/auth/register` | Create new account |
+| `POST` | `/api/auth/login` | Get JWT token |
+| `POST` | `/api/auth/forgot-password` | Request password reset |
+| `POST` | `/api/auth/reset-password` | Reset with token |
+
+### Food Listings
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/food` | Browse all listings |
+| `POST` | `/api/food` | Create new listing |
+| `GET` | `/api/food/:id` | Get listing details |
+| `PATCH` | `/api/food/:id` | Update listing |
+| `DELETE` | `/api/food/:id` | Delete listing |
+
+### Claims & Tracking
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/claim/:foodId` | Claim a food listing |
 | `GET` | `/api/claim/:claimId` | Get claim details |
 | `GET` | `/api/claim/:claimId/locations` | Poll live positions |
-| `POST` | `/api/claim/:claimId/location` | Push live GPS position |
+| `POST` | `/api/claim/:claimId/location` | Share GPS position |
 | `GET` | `/api/claim/:claimId/otp` | Get delivery OTP |
-| `POST` | `/api/claim/:claimId/self-pickup` | Confirm self-pickup |
-| `GET` | `/api/volunteer/tasks` | Volunteer active tasks |
-| `POST` | `/api/volunteer/accept/:claimId` | Accept delivery task |
+| `POST` | `/api/claim/:claimId/verify-otp` | Verify OTP code |
+
+### Volunteer Tasks
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/volunteer/tasks` | Get active tasks |
+| `POST` | `/api/volunteer/accept/:claimId` | Accept task |
 | `PATCH` | `/api/volunteer/task/:taskId` | Update task status |
-| `GET` | `/api/donor/listings` | Donor's listings |
-| `GET` | `/api/donor/deliveries` | Donor's pending deliveries |
-| `PATCH` | `/api/donor/deliver/:claimId` | Update delivery status |
-| `GET` | `/api/stats` | Platform impact stats |
-| `GET` | `/api/admin/*` | Admin management endpoints |
+| `GET` | `/api/volunteer/stats` | Volunteer statistics |
+
+### Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/admin/users` | List all users |
+| `DELETE` | `/api/admin/users/:id` | Remove user |
+| `GET` | `/api/admin/listings` | All listings |
+| `GET` | `/api/admin/stats` | Platform statistics |
+
+### Statistics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/stats` | Platform impact metrics |
+| `GET` | `/api/stats/volunteer/:id` | Volunteer contribution stats |
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Data Model
 
 ```
-User ──────────────────────┐
- ├── FoodListing []         │ (donor)
- ├── Claim []               │ (receiver)
- └── VolunteerTask []       │ (volunteer)
-                            │
-FoodListing ───────────────►Claim ──────────► VolunteerTask
-  title                      pickupType          status
-  quantity                   status              volunteer
-  foodType                   receiver            ASSIGNED
-  location (+ lat/lng)       volunteerTask       PICKED_UP
-  pickupArrangement                              DELIVERED
-  status:
-    AVAILABLE → CLAIMED → ASSIGNED → PICKED_UP → DELIVERED
+User
+├── id (UUID)
+├── email (unique)
+├── password (hashed)
+├── role (Donor | Receiver | Volunteer | Admin)
+├── profile { name, phone, lat, lng }
+└── relationships
+    ├── FoodListing[] (if Donor)
+    ├── Claim[] (if Receiver)
+    └── VolunteerTask[] (if Volunteer)
+
+FoodListing
+├── id, title, description
+├── quantity, foodType, category
+├── expiresAt, photoUrl
+├── location { address, lat, lng }
+├── pickupArrangement (VOLUNTEER | DONOR | RECEIVER | FLEXIBLE)
+├── status (AVAILABLE → CLAIMED → ASSIGNED → PICKED_UP → DELIVERED)
+└── donorId (FK: User)
+
+Claim
+├── id, status
+├── pickupType (SELF | VOLUNTEER | DONOR | FLEXIBLE)
+├── foodId (FK: FoodListing)
+├── receiverId (FK: User)
+└── volunteerTaskId (FK: VolunteerTask)
+
+VolunteerTask
+├── id, status
+├── currentLocation { lat, lng, updatedAt }
+├── claimId (FK: Claim)
+├── volunteerId (FK: User)
+└── deliveryOTP (auto-generated)
 ```
 
 ---
 
 ## 🌱 Roadmap
 
-- [ ] **PWA support** — offline capability and install prompts
-- [ ] **Push notifications** — real-time delivery alerts
-- [ ] **Food rating system** — receiver rates food quality
-- [ ] **Volunteer leaderboard** — gamification for volunteers
-- [ ] **Multi-city expansion** — regional coordinator accounts
-- [ ] **Donation analytics** — carbon footprint saved, meals served
-- [ ] **WhatsApp integration** — claim food via WhatsApp Bot
-- [ ] **ML demand prediction** — predict high-need zones for proactive donation drives
+**Current Version: 1.1.0**
+
+### Next Releases
+- [ ] **Push Notifications** — real-time delivery alerts via WebSocket/FCM
+- [ ] **PWA Support** — offline capability and installable app
+- [ ] **Food Ratings System** — receiver ratings and reviews
+- [ ] **Volunteer Leaderboard** — gamification with badges and achievements
+- [ ] **Multi-City Expansion** — regional coordinator role
+- [ ] **Advanced Analytics** — carbon footprint tracking, impact metrics
+- [ ] **WhatsApp Integration** — claim food via WhatsApp Bot
+- [ ] **ML Demand Prediction** — predictive models for high-need zones
+- [ ] **Mobile Apps** — Native iOS/Android applications
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are what make open source amazing! Any contributions you make are **greatly appreciated**.
+We love contributions! Here's how to get started:
 
-1. Fork the project
-2. Create your feature branch: `git checkout -b feat/amazing-feature`
-3. Commit your changes: `git commit -m 'feat: add amazing feature'`
-4. Push to the branch: `git push origin feat/amazing-feature`
-5. Open a Pull Request
+1. **Fork the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/foodrescue.git
+   cd foodrescue
+   ```
 
-Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feat/amazing-feature
+   ```
+
+3. **Commit with conventional format**
+   ```bash
+   git commit -m "feat: add amazing feature"
+   git commit -m "fix: resolve tracking bug"
+   git commit -m "docs: improve README"
+   ```
+
+4. **Push and create PR**
+   ```bash
+   git push origin feat/amazing-feature
+   ```
+
+### Contribution Guidelines
+- Follow [Conventional Commits](https://www.conventionalcommits.org/)
+- Write tests for new features
+- Update documentation
+- Keep code clean and well-commented
+- PRs welcome for bug fixes, features, and documentation!
 
 ### Good First Issues
-
-- Improve mobile responsiveness of the tracking page
-- Add dark mode support
-- Write unit tests for API routes
-- Add food category filters on the browse page
-
----
-
-## 📸 Screenshots
-
-> _Screenshots coming soon — run the app locally to see it in action!_
+- [ ] Improve mobile responsiveness of tracking page
+- [ ] Add dark mode support
+- [ ] Write unit tests for API routes
+- [ ] Add food category filters to browse page
+- [ ] Implement delivery history view
+- [ ] Add volunteer performance analytics
 
 ---
 
-## 📊 Impact Stats
+## 📊 Platform Metrics
 
-FoodRescue tracks:
-- 🍱 Total meals rescued
-- 🌿 kg of food saved from waste
-- 🚴 Active volunteers
-- 🏙️ Cities covered
+FoodRescue tracks impact through:
+
+| Metric | Purpose |
+|--------|---------|
+| 🍱 Meals Rescued | Total food items delivered |
+| 🌿 kg Saved | Food waste prevented |
+| 🚴 Active Volunteers | Community engagement |
+| 🏙️ Cities Covered | Geographic expansion |
+| ⏱️ Avg Delivery Time | Operational efficiency |
+| ✅ Success Rate | Delivery completion |
+
+---
+
+## 🐛 Bug Reports & Support
+
+Found an issue? Let us know!
+
+- **Bug Report**: [Open an Issue](https://github.com/grafenx07/foodrescue/issues/new?template=bug_report.md)
+- **Feature Request**: [Request Feature](https://github.com/grafenx07/foodrescue/issues/new?template=feature_request.md)
+- **Discussions**: [Start Discussion](https://github.com/grafenx07/foodrescue/discussions)
 
 ---
 
 ## 📄 License
 
-Distributed under the **ISC License**. See [`LICENSE`](LICENSE) for more information.
+FoodRescue is distributed under the **ISC License**. See [`LICENSE`](LICENSE) for details.
 
 ---
 
-## 🙏 Acknowledgements
+## 🙏 Acknowledgments
 
-- [OpenStreetMap](https://www.openstreetmap.org/) & [Nominatim](https://nominatim.org/) — free geocoding
-- [OSRM](http://project-osrm.org/) — open source road-following routing engine
-- [Leaflet.js](https://leafletjs.com/) — interactive maps
-- [Carto](https://carto.com/) — beautiful Voyager map tiles
-- [Prisma](https://www.prisma.io/) — next-generation ORM
-- [Tailwind CSS](https://tailwindcss.com/) — utility-first CSS
-- Every volunteer who donates their time to fight food waste 💚
+Built on the shoulders of amazing open-source projects:
+
+- **[OpenStreetMap](https://www.openstreetmap.org/)** & **[Nominatim](https://nominatim.org/)** — free, global geocoding
+- **[OSRM](http://project-osrm.org/)** — intelligent road-based routing
+- **[Leaflet.js](https://leafletjs.com/)** — lightweight interactive maps
+- **[Carto](https://carto.com/)** — professional Voyager map tiles
+- **[Prisma](https://www.prisma.io/)** — next-generation Node.js ORM
+- **[Tailwind CSS](https://tailwindcss.com/)** — utility-first CSS framework
+- **[React](https://react.dev/)** — modern UI library
+- **[Express.js](https://expressjs.com/)** — web framework
 
 ---
 
 <div align="center">
 
-**If FoodRescue inspired you, please consider giving it a ⭐ — it helps more people discover the project and join the mission!**
+### Made with 💚 to fight food waste
 
-Made with 💚 to fight food waste
+**Help us expand FoodRescue's impact — star us, share with your network, and contribute!**
 
-[⬆ Back to top](#)
+[⬆ Back to top](#-foodrescue)
 
 </div>

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: foodrescue-api
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      # Set the following in the Render dashboard (not here — never commit secrets):
+      # DATABASE_URL   → Supabase pooled connection string (port 6543)
+      # DIRECT_URL     → Supabase direct connection string (port 5432)
+      # JWT_SECRET     → Strong random secret
+      # ALLOWED_ORIGIN → Your Vercel frontend URL (e.g. https://foodrescue.vercel.app)
+      # SMTP_HOST      → smtp.gmail.com
+      # SMTP_PORT      → 587
+      # SMTP_USER      → your Gmail address
+      # SMTP_PASS      → Gmail App Password
+      # EMAIL_FROM     → FoodRescue <your@gmail.com>
+      # APP_URL        → Your Vercel frontend URL

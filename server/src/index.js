@@ -1,4 +1,7 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+// Resolve .env from repo root regardless of where node is invoked from.
+// On Render: process.cwd() == /opt/render/project/src (the repo root).
+// Locally:   process.cwd() == repo root when using `npm run dev` from root.
+require('dotenv').config({ path: require('path').resolve(process.cwd(), '.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

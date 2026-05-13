@@ -16,6 +16,8 @@ async function getTransporter() {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT || '587', 10),
         secure: false, // STARTTLS on port 587
+        // Force IPv4 — Render's free tier does not support outbound IPv6
+        family: 4,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,

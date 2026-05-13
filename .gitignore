@@ -1,8 +1,26 @@
+# Dependencies
 node_modules/
+client/node_modules/
+
+# Environment variables — never commit real secrets
 .env
 .env.local
+.env.production
+client/.env
+client/.env.local
+client/.env.production
+
+# Build outputs
 dist/
 build/
+client/dist/
+
+# Uploaded files (ephemeral on Render — use Supabase Storage in production)
 uploads/
 photosFood/
+
+# OS / Editor
 .DS_Store
+Thumbs.db
+.vscode/
+*.log

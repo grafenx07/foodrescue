@@ -7,6 +7,11 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// ⚠️  PRODUCTION NOTE: Render's free tier uses an ephemeral filesystem.
+//    Files saved to /uploads are wiped on every redeploy.
+//    For persistent image storage, migrate to Supabase Storage:
+//    https://supabase.com/docs/guides/storage
+//    Until then, food listings will lose their images after a Render redeploy.
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),

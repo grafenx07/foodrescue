@@ -10,7 +10,13 @@ const fs = require('fs');
 // Ensure uploads directory exists (Render's filesystem is ephemeral — it won't
 // survive a redeploy, but at least the folder will be created on each boot).
 const uploadsDir = path.join(__dirname, '../uploads');
-fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+} catch (err) {
+  console.error(`[Startup] Failed to create uploads directory at ${uploadsDir}`);
+  console.error(err);
+  throw err;
+}
 
 const authRoutes = require('./routes/auth');
 const foodRoutes = require('./routes/food');

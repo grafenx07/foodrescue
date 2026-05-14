@@ -226,32 +226,36 @@ export default function VolunteerDashboard() {
                         </button>
                       )}
                       {task.status === 'PICKED_UP' && awaitingOtp === task.id && (
-                        <div className="flex-1 flex gap-2">
-                          <div className="relative flex-1">
-                            <KeyRound size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <div className="flex-1 flex flex-col gap-2">
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <KeyRound size={11} /> Ask the receiver for their 6-digit delivery code
+                          </p>
+                          <div className="relative w-full">
                             <input
                               type="text"
                               inputMode="numeric"
                               maxLength={6}
-                              placeholder="6-digit code from receiver"
+                              placeholder="Enter 6-digit code"
                               value={otpInputs[task.id] || ''}
                               onChange={e => setOtpInputs(prev => ({ ...prev, [task.id]: e.target.value.replace(/\D/g, '') }))}
-                              className="w-full pl-8 pr-3 py-2.5 border border-green-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500"
+                              className="w-full px-4 py-3 border border-green-300 rounded-xl text-base font-mono tracking-[0.35em] text-center focus:outline-none focus:ring-2 focus:ring-green-500"
                             />
                           </div>
-                          <button
-                            onClick={() => handleConfirmDelivery(task.id)}
-                            disabled={updating === task.id}
-                            className="bg-green-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-green-700 transition-colors text-sm disabled:opacity-60 whitespace-nowrap"
-                          >
-                            {updating === task.id ? '...' : 'Confirm'}
-                          </button>
-                          <button
-                            onClick={() => setAwaitingOtp(null)}
-                            className="px-3 py-2.5 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50"
-                          >
-                            ✕
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleConfirmDelivery(task.id)}
+                              disabled={updating === task.id}
+                              className="flex-1 bg-green-600 text-white font-semibold py-2.5 rounded-xl hover:bg-green-700 transition-colors text-sm disabled:opacity-60"
+                            >
+                              {updating === task.id ? 'Confirming…' : '✅ Confirm Delivery'}
+                            </button>
+                            <button
+                              onClick={() => setAwaitingOtp(null)}
+                              className="px-4 py-2.5 rounded-xl text-sm text-gray-500 border border-gray-200 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       )}
                       <button

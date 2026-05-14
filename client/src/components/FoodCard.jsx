@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, Users, MapPin, Bike, User, Truck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,12 +13,26 @@ const FOOD_TYPE_COLORS = {
 const FOOD_TYPE_LABELS = { VEG: 'Veg', NON_VEG: 'Non-Veg', PACKAGED: 'Packaged' };
 
 const PICKUP_LABELS = {
-  VOLUNTEER:      { label: 'Volunteer delivery', icon: Bike,   color: 'text-blue-600 bg-blue-50' },
-  RECEIVER_PICKUP:{ label: 'Self pickup',        icon: User,   color: 'text-amber-700 bg-amber-50' },
-  SELF:           { label: 'Self pickup',        icon: User,   color: 'text-amber-700 bg-amber-50' },
-  "I'LL_DELIVER": { label: 'Donor delivers',     icon: Truck,  color: 'text-purple-700 bg-purple-50' },
-  FLEXIBLE:       { label: 'Flexible',           icon: Truck,  color: 'text-gray-600 bg-gray-100' },
+  VOLUNTEER:      { label: 'Volunteer delivery', icon: Bike,  color: 'text-blue-600 bg-blue-50' },
+  RECEIVER_PICKUP:{ label: 'Self pickup',        icon: User,  color: 'text-amber-700 bg-amber-50' },
+  SELF:           { label: 'Self pickup',        icon: User,  color: 'text-amber-700 bg-amber-50' },
+  DONOR_DELIVERY: { label: 'Donor delivers',     icon: Truck, color: 'text-purple-700 bg-purple-50' },
+  "I'LL_DELIVER": { label: 'Donor delivers',     icon: Truck, color: 'text-purple-700 bg-purple-50' },
+  FLEXIBLE:       { label: 'Flexible',           icon: Truck, color: 'text-gray-600 bg-gray-100' },
 };
+
+/** Geocode a location string → [lat, lng] via Nominatim */
+async function geocodeLocation(location) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    if (!data.length) return null;
+    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  } catch {
+    return null;
+  }
+}
 
 /** Haversine distance in km between two [lat,lng] pairs */
 function haversineKm([lat1, lon1], [lat2, lon2]) {
@@ -57,9 +71,25 @@ export default function FoodCard({ listing, onClaim, showClaim = true, userLocat
   const imageIdx = listing.id ? parseInt(listing.id.replace(/-/g, '').slice(-4), 16) % PLACEHOLDER_IMAGES.length : 0;
   const imgSrc = listing.imageUrl ? listing.imageUrl : PLACEHOLDER_IMAGES[imageIdx];
 
-  // Distance from user
-  const distKm = (userLocation && listing.lat && listing.lng)
-    ? haversineKm(userLocation, [listing.lat, listing.lng])
+  // Geocoded coords fallback when listing.lat/lng are missing
+  const [geocodedCoords, setGeocodedCoords] = useState(null);
+  useEffect(() => {
+    if (!userLocation) return;
+    if (listing.lat && listing.lng) return; // already have real coords
+    if (!listing.location) return;
+    let cancelled = false;
+    geocodeLocation(listing.location).then(coords => {
+      if (!cancelled && coords) setGeocodedCoords(coords);
+    });
+    return () => { cancelled = true; };
+  }, [listing.id, listing.lat, listing.lng, listing.location, userLocation]);
+
+  // Distance from user — use real DB coords first, then geocoded fallback
+  const listingCoords = (listing.lat && listing.lng)
+    ? [listing.lat, listing.lng]
+    : geocodedCoords;
+  const distKm = (userLocation && listingCoords)
+    ? haversineKm(userLocation, listingCoords)
     : null;
   const distLabel = distKm !== null
     ? (distKm < 1 ? `${Math.round(distKm * 1000)} m away` : `${distKm.toFixed(1)} km away`)

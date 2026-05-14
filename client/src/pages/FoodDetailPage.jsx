@@ -8,6 +8,7 @@ import useAuthStore from '../store/authStore';
 import StatusBadge from '../components/StatusBadge';
 import MapView, { greenIcon } from '../components/MapView';
 import toast from 'react-hot-toast';
+import { resolveImageUrl } from '../lib/imageUrl';
 
 const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
@@ -67,7 +68,7 @@ export default function FoodDetailPage() {
   );
 
   const imgIdx = parseInt(listing.id.replace(/-/g, '').slice(-4), 16) % PLACEHOLDER_IMAGES.length;
-  const imgSrc = listing.imageUrl || PLACEHOLDER_IMAGES[imgIdx];
+  const imgSrc = resolveImageUrl(listing.imageUrl) || PLACEHOLDER_IMAGES[imgIdx];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">

@@ -7,6 +7,7 @@ import StatusBadge from '../../components/StatusBadge';
 import FoodCard from '../../components/FoodCard';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
+import { resolveImageUrl } from '../../lib/imageUrl';
 
 export default function ReceiverDashboard() {
   const { user } = useAuthStore();
@@ -155,7 +156,7 @@ export default function ReceiverDashboard() {
             <div key={claim.id} className="bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
                 <img
-                  src={claim.food?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'}
+                  src={resolveImageUrl(claim.food?.imageUrl) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'}
                   className="w-full h-full object-cover"
                   alt={claim.food?.title}
                   onError={e => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80'; }}

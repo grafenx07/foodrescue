@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Users } from 'lucide-react';
+import { Clock, Users, MapPin, Bike, User, Truck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import StatusBadge from './StatusBadge';
 
@@ -11,6 +11,27 @@ const FOOD_TYPE_COLORS = {
 };
 
 const FOOD_TYPE_LABELS = { VEG: 'Veg', NON_VEG: 'Non-Veg', PACKAGED: 'Packaged' };
+
+const PICKUP_LABELS = {
+  VOLUNTEER:      { label: 'Volunteer delivery', icon: Bike,   color: 'text-blue-600 bg-blue-50' },
+  RECEIVER_PICKUP:{ label: 'Self pickup',        icon: User,   color: 'text-amber-700 bg-amber-50' },
+  SELF:           { label: 'Self pickup',        icon: User,   color: 'text-amber-700 bg-amber-50' },
+  "I'LL_DELIVER": { label: 'Donor delivers',     icon: Truck,  color: 'text-purple-700 bg-purple-50' },
+  FLEXIBLE:       { label: 'Flexible',           icon: Truck,  color: 'text-gray-600 bg-gray-100' },
+};
+
+/** Haversine distance in km between two [lat,lng] pairs */
+function haversineKm([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 // Placeholder food images if no image uploaded
 const PLACEHOLDER_IMAGES = [
@@ -24,16 +45,30 @@ const PLACEHOLDER_IMAGES = [
 
 /**
  * FoodCard
- * @param {object}   listing   - food listing object
- * @param {function} onClaim   - if provided, show Claim button and call this fn with listing
- * @param {boolean}  showClaim - set false to hide claim button entirely (default true)
+ * @param {object}        listing      - food listing object
+ * @param {function}      onClaim      - if provided, show Claim button and call this fn with listing
+ * @param {boolean}       showClaim    - set false to hide claim button entirely (default true)
+ * @param {[lat,lng]|null} userLocation - current user coords for distance display
  */
-export default function FoodCard({ listing, onClaim, showClaim = true }) {
+export default function FoodCard({ listing, onClaim, showClaim = true, userLocation = null }) {
   const expiry = new Date(listing.expiryTime);
   const isExpiringSoon = expiry - new Date() < 2 * 60 * 60 * 1000;
   const isExpired = expiry < new Date();
   const imageIdx = listing.id ? parseInt(listing.id.replace(/-/g, '').slice(-4), 16) % PLACEHOLDER_IMAGES.length : 0;
   const imgSrc = listing.imageUrl ? listing.imageUrl : PLACEHOLDER_IMAGES[imageIdx];
+
+  // Distance from user
+  const distKm = (userLocation && listing.lat && listing.lng)
+    ? haversineKm(userLocation, [listing.lat, listing.lng])
+    : null;
+  const distLabel = distKm !== null
+    ? (distKm < 1 ? `${Math.round(distKm * 1000)} m away` : `${distKm.toFixed(1)} km away`)
+    : null;
+
+  // Pickup / delivery type
+  const pickupKey = listing.pickupArrangement || listing.pickupType || 'FLEXIBLE';
+  const pickup = PICKUP_LABELS[pickupKey] || PICKUP_LABELS.FLEXIBLE;
+  const PickupIcon = pickup.icon;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group">
@@ -59,7 +94,14 @@ export default function FoodCard({ listing, onClaim, showClaim = true }) {
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-gray-900 text-base mb-0.5 line-clamp-1">{listing.title}</h3>
-          <p className="text-sm text-gray-500 mb-3">{listing.donor?.name || 'Unknown donor'}</p>
+          <p className="text-xs text-gray-500 mb-2">{listing.donor?.name || 'Unknown donor'}</p>
+
+          {/* Delivery type badge */}
+          <div className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full mb-3 ${pickup.color}`}>
+            <PickupIcon size={10} />
+            {pickup.label}
+          </div>
+
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <Clock size={12} />
@@ -70,6 +112,14 @@ export default function FoodCard({ listing, onClaim, showClaim = true }) {
               <span>{listing.quantity} portions</span>
             </div>
           </div>
+
+          {/* Distance from user */}
+          {distLabel && (
+            <div className="flex items-center gap-1 text-xs text-green-600 mt-1.5 font-medium">
+              <MapPin size={11} />
+              {distLabel}
+            </div>
+          )}
         </div>
       </Link>
 

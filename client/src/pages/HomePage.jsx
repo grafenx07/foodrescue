@@ -4,7 +4,7 @@ import { Search, MapPin, Leaf, ArrowRight, List, Map as MapIcon, X } from 'lucid
 import { Marker, Popup } from 'react-leaflet';
 import api from '../lib/api';
 import FoodCard from '../components/FoodCard';
-import MapView, { greenIcon } from '../components/MapView';
+import MapView, { greenIcon, userLocationIcon } from '../components/MapView';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -116,18 +116,18 @@ export default function HomePage() {
     }
   }, []);
 
-  // Geocode listing addresses when switching to map view
+  // Geocode listing addresses that lack lat/lng — run whenever listings change
   useEffect(() => {
-    if (viewMode !== 'map' || listings.length === 0) return;
-    const alreadyCached = listings.every(l => geocodeCache[l.id] || l.lat);
-    if (alreadyCached) return;
+    if (listings.length === 0) return;
+    const toGeocode = listings.filter(l => !l.lat || !l.lng);
+    if (toGeocode.length === 0) return;
 
     setGeocodingMap(true);
     batchGeocodeListings(listings).then(newCoords => {
       setGeocodeCache(prev => ({ ...prev, ...newCoords }));
       setGeocodingMap(false);
     });
-  }, [viewMode, listings]);
+  }, [listings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Search handler
   const handleSearch = useCallback(async () => {
@@ -331,8 +331,18 @@ export default function HomePage() {
               </div>
             )}
             <MapView center={center} zoom={13} height="520px" flyTo={center}>
+              {/* Current user location dot */}
+              {userLocation && (
+                <Marker position={userLocation} icon={userLocationIcon}>
+                  <Popup>
+                    <div className="text-sm font-semibold text-gray-800">📍 Your location</div>
+                    <div className="text-xs text-gray-500">{locationName || 'Current location'}</div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Food listing markers */}
               {filtered.map(listing => {
-                // Use real coords from DB if available, otherwise from geocode cache
                 const pos = listing.lat && listing.lng
                   ? [listing.lat, listing.lng]
                   : geocodeCache[listing.id] || null;
@@ -341,10 +351,18 @@ export default function HomePage() {
                 return (
                   <Marker key={listing.id} position={pos} icon={greenIcon}>
                     <Popup>
-                      <div className="text-sm max-w-[160px]">
+                      <div className="text-sm max-w-[180px]">
                         <p className="font-bold text-gray-900 mb-0.5">{listing.title}</p>
                         <p className="text-gray-500 text-xs mb-1">{listing.quantity} servings · {listing.foodType}</p>
-                        <p className="text-xs text-gray-400 mb-2">{listing.location}</p>
+                        <p className="text-xs text-gray-400 mb-0.5">{listing.location}</p>
+                        {listing.pickupArrangement && (
+                          <p className="text-xs text-blue-600 mb-2">
+                            {listing.pickupArrangement === 'VOLUNTEER' ? '🚴 Volunteer delivery'
+                              : listing.pickupArrangement === 'RECEIVER_PICKUP' ? '🚶 Self pickup'
+                              : listing.pickupArrangement === "I'LL_DELIVER" ? '🚗 Donor delivers'
+                              : '🔄 Flexible'}
+                          </p>
+                        )}
                         <a
                           href={`/food/${listing.id}`}
                           className="text-xs font-semibold text-green-600 hover:underline"
@@ -367,7 +385,7 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(listing => (
-              <FoodCard key={listing.id} listing={listing} onClaim={handleClaim} />
+              <FoodCard key={listing.id} listing={listing} onClaim={handleClaim} userLocation={userLocation} />
             ))}
           </div>
         )}

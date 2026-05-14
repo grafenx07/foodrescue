@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Clock, Users, MapPin, Bike, User, Truck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import StatusBadge from './StatusBadge';
+import { resolveImageUrl } from '../lib/imageUrl';
 
 const FOOD_TYPE_COLORS = {
   VEG: 'bg-green-100 text-green-700',
@@ -69,7 +70,7 @@ export default function FoodCard({ listing, onClaim, showClaim = true, userLocat
   const isExpiringSoon = expiry - new Date() < 2 * 60 * 60 * 1000;
   const isExpired = expiry < new Date();
   const imageIdx = listing.id ? parseInt(listing.id.replace(/-/g, '').slice(-4), 16) % PLACEHOLDER_IMAGES.length : 0;
-  const imgSrc = listing.imageUrl ? listing.imageUrl : PLACEHOLDER_IMAGES[imageIdx];
+  const imgSrc = resolveImageUrl(listing.imageUrl) || PLACEHOLDER_IMAGES[imageIdx];
 
   // Geocoded coords fallback when listing.lat/lng are missing
   const [geocodedCoords, setGeocodedCoords] = useState(null);

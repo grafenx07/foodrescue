@@ -1,24 +1,24 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ⚠️  PRODUCTION NOTE: Render's free tier uses an ephemeral filesystem.
-//    Files saved to /uploads are wiped on every redeploy.
-//    For persistent image storage, migrate to Supabase Storage:
-//    https://supabase.com/docs/guides/storage
-//    Until then, food listings will lose their images after a Render redeploy.
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-});
+// ── Supabase Storage client ────────────────────────────────────────────────
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+const BUCKET = 'food-images';
+
+// ── Multer — memory storage (file held in RAM, then streamed to Supabase) ──
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed'));
@@ -26,6 +26,24 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+/** Upload a file buffer to Supabase Storage and return the public URL */
+async function uploadToSupabase(file) {
+  const ext = path.extname(file.originalname) || '.jpg';
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filename, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false,
+    });
+
+  if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(filename);
+  return data.publicUrl;
+}
 
 // GET /api/food - list food listings
 router.get('/', async (req, res) => {
@@ -77,7 +95,18 @@ router.post('/', authenticate, requireRole('DONOR'), upload.single('image'), asy
     if (!title || !quantity || !expiryTime) {
       return res.status(400).json({ error: 'title, quantity, and expiryTime are required' });
     }
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Upload image to Supabase Storage (if provided), otherwise null
+    let imageUrl = null;
+    if (req.file) {
+      try {
+        imageUrl = await uploadToSupabase(req.file);
+      } catch (uploadErr) {
+        console.error('[food POST] Image upload failed:', uploadErr.message);
+        // Non-fatal: continue without image rather than failing the whole request
+      }
+    }
+
     const listing = await prisma.foodListing.create({
       data: {
         donorId: req.user.id,
